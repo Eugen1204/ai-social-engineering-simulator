@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace  # Удаляет лишние пробелы в конце строк
+      - id: end-of-file-fixer    # Добавляет пустую строку в конце файла
+      - id: check-yaml           # Проверяет синтаксис YAML-файлов
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff-check
+        args: [ --fix ]  # Передаем аргумент для автоматического исправления ошибок
+      - id: ruff-format   # Хук для форматирования кода
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.2.0
+    hooks:
+      - id: mypy
