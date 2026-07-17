@@ -8,6 +8,6 @@ class DuplicateDepartmentNameError(Exception):
     pass
 
 
-class DepartmentDontExistError(Exception):
+class DepartmentNotFoundError(Exception):
     """Error removing department"""
     pass

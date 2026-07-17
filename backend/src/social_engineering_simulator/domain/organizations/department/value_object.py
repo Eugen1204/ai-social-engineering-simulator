@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from social_engineering_simulator.domain.organizations.Department.exceptions import InvalidNameDepartmentError
+from social_engineering_simulator.domain.organizations.department.exceptions import InvalidNameDepartmentError
 import re
 
 
@@ -21,4 +21,3 @@ class DepartmentName:
         allowed_pattern = r'^[a-zA-Zа-яА-Я0-9 \-.&#]+$'
         if not re.fullmatch(allowed_pattern, name):
             raise InvalidNameDepartmentError(f"Organization name '{name}' contains invalid characters.")
-
