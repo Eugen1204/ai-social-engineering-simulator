@@ -3,6 +3,11 @@ class InvalidNameOrganizationError(Exception):
     pass
 
 
-class InvalidDescriptionsError(Exception):
-    """Something is wrong with the description of the organization."""
+class DuplicateDepartmentNameError(Exception):
+    """error adding department"""
+    pass
+
+
+class DepartmentNotFoundError(Exception):
+    """Error removing department"""
     pass

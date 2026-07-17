@@ -45,4 +45,3 @@ class OrganizationName:
         allowed_pattern = r'^[a-zA-Zа-яА-Я0-9 \-.&#]+$'
         if not re.fullmatch(allowed_pattern, name):
             raise InvalidNameOrganizationError(f"Organization name '{name}' contains invalid characters.")
-
