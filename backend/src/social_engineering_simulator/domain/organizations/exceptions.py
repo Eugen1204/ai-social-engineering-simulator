@@ -36,3 +36,9 @@ class EmployeeDeleteError(Exception):
 class ChangeDepartmentError(Exception):
     """It is impossible to change departments"""
     pass
+
+
+class WrongIndustryError(Exception):
+    """WRONG INDUSTRY"""
+    pass
+
