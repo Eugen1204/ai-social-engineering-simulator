@@ -2,6 +2,7 @@ from enum import Enum
 from dataclasses import dataclass
 from social_engineering_simulator.domain.organizations.exceptions import InvalidNameOrganizationError
 import re
+from social_engineering_simulator.domain.organizations.exceptions import WrongIndustryError
 
 
 class IndustryType(Enum):
@@ -25,6 +26,13 @@ class IndustryType(Enum):
     INSURANCE = "Insurance"
     REAL_ESTATE = "Real Estate"
     ENTERTAINMENT = "Entertainment"
+
+    @classmethod
+    def from_str(cls, value: str) -> "IndustryType":
+        try:
+            return cls(value)
+        except ValueError:
+            raise WrongIndustryError("Industry not found")
 
 
 @dataclass(frozen=True)
