@@ -8,6 +8,9 @@ src/backend.egg-info/requires.txt
 src/backend.egg-info/top_level.txt
 src/social_engineering_simulator/__init__.py
 src/social_engineering_simulator/application/__init__.py
+src/social_engineering_simulator/application/dto/create_organization.py
+src/social_engineering_simulator/application/services/create_organization.py
+src/social_engineering_simulator/application/services/exception_create_organization.py
 src/social_engineering_simulator/core/__init__.py
 src/social_engineering_simulator/domain/__init__.py
 src/social_engineering_simulator/domain/organizations/__init__.py
@@ -28,5 +31,9 @@ src/social_engineering_simulator/presentation/app.py
 src/social_engineering_simulator/presentation/main.py
 src/social_engineering_simulator/presentation/api/__init__.py
 src/social_engineering_simulator/presentation/api/health.py
-src/social_engineering_simulator/presentation/api/routers/__init__.py
 src/social_engineering_simulator/presentation/api/v1/__init__.py
+src/social_engineering_simulator/presentation/api/v1/dependencies.py
+src/social_engineering_simulator/presentation/api/v1/excrption_handlers.py
+src/social_engineering_simulator/presentation/api/v1/organization.py
+src/social_engineering_simulator/presentation/api/v1/routers/organization.py
+src/social_engineering_simulator/presentation/api/v1/schemas/organization.py

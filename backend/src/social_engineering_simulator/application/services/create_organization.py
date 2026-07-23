@@ -21,10 +21,12 @@ class CreateOrganizationService:
             department = Department(name=DepartmentName(department_name))
             org.add_department(department=department)
 
+        dep_names = [d.name.value for d in org.get_departments()]
+
         return OrganizationResponse(id=org.id,
                                     name=org.name.value,
                                     industry=org.industry.value,
-                                    departments_count=len(org.get_departments()),
+                                    departments=dep_names,
                                     )
 
 

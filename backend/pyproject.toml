@@ -49,6 +49,7 @@ exclude = [
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.8.0",
     "mypy>=2.2.0",
     "pre-commit>=4.6.0",
 ]
