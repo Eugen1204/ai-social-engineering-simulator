@@ -1,7 +1,4 @@
-import pytest
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError
 from social_engineering_simulator.presentation.main import app
 
 
@@ -61,9 +58,3 @@ def test_invalid_json():
     response = client.post("/organization", json=payload)
 
     assert response.status_code == 422
-
-
-
-
-
-

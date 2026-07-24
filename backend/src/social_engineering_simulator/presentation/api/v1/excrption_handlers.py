@@ -32,10 +32,5 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={"detail": str(exc)}
         )
 
-    @app.exception_handler(Exception)
-    async def handler_duplicate_department(request: Request, exc: Exception):
-        return JSONResponse(
-            status_code=500,
-            content={"detail": f"Internal server error: {str(exc)}"}
-        )
+
 

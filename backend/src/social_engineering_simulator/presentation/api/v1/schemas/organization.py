@@ -13,7 +13,7 @@ class CreateOrganizationHttpRequest(BaseModel):
                                    examples=[["HR", "IT", "Finance"]])
 
 
-class OrganizationResponse(BaseModel):
+class OrganizationHttpResponse(BaseModel):
     id: UUID
     name: str
     industry: str
