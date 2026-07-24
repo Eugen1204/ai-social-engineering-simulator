@@ -3,3 +3,5 @@ class DuplicateDepartmentsError(Exception):
     pass
 
 
+class OrganizationNotFoundError(Exception):
+    pass

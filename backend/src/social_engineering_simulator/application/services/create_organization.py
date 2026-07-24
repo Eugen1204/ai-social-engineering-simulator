@@ -1,14 +1,21 @@
-from dataclasses import dataclass
+from uuid import UUID
+
 from social_engineering_simulator.application.dto.create_organization import CreateOrganizationRequest, \
     OrganizationResponse
 from social_engineering_simulator.domain.organizations.entity import Organization, OrganizationName
+from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
 from social_engineering_simulator.domain.organizations.value_object import IndustryType
 from social_engineering_simulator.domain.organizations.department.entity import Department, DepartmentName
-from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError
+from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError, \
+    OrganizationNotFoundError
+from functools import lru_cache
 
 
 class CreateOrganizationService:
-    def execute(self, request: CreateOrganizationRequest):
+    def __init__(self, repo: OrganizationRepository):
+        self.repo = repo
+
+    def execute(self, request: CreateOrganizationRequest) -> OrganizationResponse:
         name = OrganizationName(request.name)
         industry = IndustryType.from_str(request.industry)
 
@@ -21,19 +28,24 @@ class CreateOrganizationService:
             department = Department(name=DepartmentName(department_name))
             org.add_department(department=department)
 
-        dep_names = [d.name.value for d in org.get_departments()]
+        self.repo.save(org)
 
         return OrganizationResponse(id=org.id,
                                     name=org.name.value,
                                     industry=org.industry.value,
-                                    departments=dep_names,
-                                    )
+                                    count_departments=len(org.get_departments()))
 
 
+class GetOrganizationService:
+    def __init__(self, repo: OrganizationRepository):
+        self.repo = repo
 
+    def execute(self, organization_id: UUID) -> OrganizationResponse:
+        org = self.repo.get_by_id(organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with {organization_id} not found")
 
-
-
-
-
-
+        return OrganizationResponse(id=org.id,
+                                    name=org.name.value,
+                                    industry=org.industry.value,
+                                    count_departments=len(org.get_departments()))

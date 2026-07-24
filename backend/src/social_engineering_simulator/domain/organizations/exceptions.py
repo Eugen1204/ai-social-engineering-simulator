@@ -42,3 +42,7 @@ class WrongIndustryError(Exception):
     """WRONG INDUSTRY"""
     pass
 
+
+class OrganizationNotFound(Exception):
+    pass
+
