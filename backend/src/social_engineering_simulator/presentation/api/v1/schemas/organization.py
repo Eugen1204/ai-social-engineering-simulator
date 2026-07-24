@@ -17,4 +17,4 @@ class OrganizationHttpResponse(BaseModel):
     id: UUID
     name: str
     industry: str
-    departments: List[str]
+    departments: int

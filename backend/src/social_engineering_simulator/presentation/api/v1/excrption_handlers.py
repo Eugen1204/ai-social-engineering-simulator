@@ -2,7 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 
-from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError
+from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError, \
+    OrganizationNotFoundError
 from social_engineering_simulator.domain.organizations.exceptions import (
     EmployeeAddError,
     EmployeeDeleteError,
@@ -12,7 +13,7 @@ from social_engineering_simulator.domain.organizations.exceptions import (
     ChangeDepartmentError,
     DepartmentDelError,
     DepartmentNotFoundError,
-    InvalidNameOrganizationError
+    InvalidNameOrganizationError, OrganizationNotFound
 )
 
 
@@ -32,5 +33,10 @@ def register_exception_handlers(app: FastAPI) -> None:
             content={"detail": str(exc)}
         )
 
-
+    @app.exception_handler(OrganizationNotFoundError)
+    async def handler_duplicate_department(request: Request, exc: OrganizationNotFound):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": str(exc)}
+        )
 

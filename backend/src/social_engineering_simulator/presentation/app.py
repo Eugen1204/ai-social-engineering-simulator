@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from social_engineering_simulator.presentation.api.health import router as health_router
+from social_engineering_simulator.presentation.api.v1.dependencies import get_create_organization_service
 from social_engineering_simulator.presentation.api.v1.excrption_handlers import register_exception_handlers
 from social_engineering_simulator.presentation.api.v1.routers.organization import router as organization_router
 

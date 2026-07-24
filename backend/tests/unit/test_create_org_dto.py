@@ -2,6 +2,8 @@ import pytest
 from social_engineering_simulator.application.dto.create_organization import CreateOrganizationRequest
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService, \
     DuplicateDepartmentsError
+from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
+    OrganizationRepoInMemory
 
 
 @pytest.fixture()
@@ -12,7 +14,8 @@ def dto() -> CreateOrganizationRequest:
 
 
 def test_create_org_services(dto):
-    service = CreateOrganizationService()
+    repo = OrganizationRepoInMemory()
+    service = CreateOrganizationService(repo=repo)
     result = service.execute(request=dto)
 
     assert result.name == "Test Org"
@@ -20,7 +23,8 @@ def test_create_org_services(dto):
 
 
 def test_create_service_with_duplicate():
-    service = CreateOrganizationService()
+    repo = OrganizationRepoInMemory()
+    service = CreateOrganizationService(repo=repo)
     dto = CreateOrganizationRequest(name="Test",
                                     industry="IT Company",
                                     departments=["HR", "IT", "HR"])
