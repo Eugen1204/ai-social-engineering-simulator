@@ -14,4 +14,4 @@ class OrganizationResponse:
     id: UUID
     name: str
     industry: str
-    departments_count: int
+    departments: list[str]
