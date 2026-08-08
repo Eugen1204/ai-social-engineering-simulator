@@ -118,3 +118,16 @@ class Organization:
     def get_employees(self) -> tuple[Employee, ...]:
         return tuple(self._employees.values())
 
+    def get_employees_in_dep(self, dep_id: UUID) -> list[Employee.id]:
+        employees = self.get_employees()
+        lst = []
+        for e in employees:
+            if e.department_id == dep_id:
+                lst.append(e.id)
+        return lst
+
+
+
+
+
+
