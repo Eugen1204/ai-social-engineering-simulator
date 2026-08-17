@@ -1,11 +1,13 @@
 from dataclasses import dataclass, field
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timezone
 from uuid import UUID, uuid4
 
 from social_engineering_simulator.domain.organizations.campaign.CampaignEmployee import CampaignEmployee
-from social_engineering_simulator.domain.organizations.campaign.exceptions import StartCampaignError,\
-    CampaignInitError, FinishCampaignError, AddCampaignEmployeeError, DeleteCampaignEmployeeError, CancelCampaignError
+from social_engineering_simulator.domain.organizations.campaign.exceptions import StartCampaignError, \
+    CampaignInitError, FinishCampaignError, AddCampaignEmployeeError, DeleteCampaignEmployeeError, CancelCampaignError, \
+    CampaignValidationError, CampaignScheduleError
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
+from social_engineering_simulator.domain.organizations.campaign.workflow import CampaignWorkflow
 from social_engineering_simulator.domain.organizations.department.employee.entity import Employee
 
 
@@ -18,42 +20,57 @@ class Campaign:
     status: CampaignStatus
     id: UUID = field(default_factory=uuid4)
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    _start_time: datetime | None = field(default=None, init=False)
-    _end_time: datetime | None = field(default=None, init=False)
+    _scheduled_at: datetime | None = field(default=None, init=False)
+    _started_at: datetime | None = field(default=None, init=False)
+    _cancelled_at: datetime | None = field(default=None, init=False)
+    _finished_at: datetime | None = field(default=None, init=False)
     _employees: dict[UUID, CampaignEmployee] = field(default_factory=dict)
+    workflow: CampaignWorkflow = field(default_factory=CampaignWorkflow)
 
     def __post_init__(self):
         allowed_initial_status = {CampaignStatus.Draft, CampaignStatus.Scheduled}
         if self.status not in allowed_initial_status:
             raise CampaignInitError("invalid status for campaign initialization")
 
+    def _apply_action(self, action_name: str) -> None:
+        self.status = self.workflow.get_next_status(self.status, action_name)
+
+    def return_to_draft(self) -> None:
+        self._apply_action("draft")
+
     def start(self) -> None:
-        if self.status == CampaignStatus.Running:
-            raise StartCampaignError("the campaign is already active")
-        if self.status == CampaignStatus.Finished:
-            raise StartCampaignError("the campaign has already ended")
-        self._start_time = datetime.now(UTC)
-        self.status = CampaignStatus.Running
+        # if not self._employees:
+        #     raise CampaignValidationError("cannot start a campaign without employees.")
+        self._apply_action("start")
+        self._started_at = datetime.now(UTC)
 
     def finish(self) -> None:
-        if self.status != CampaignStatus.Running:
-            raise FinishCampaignError("campaign not active")
-        self._end_time = datetime.now(UTC)
-        self.status = CampaignStatus.Finished
+        self._apply_action("finish")
+        self._finished_at = datetime.now(UTC)
 
-    def cancel(self):
-        if self.status != CampaignStatus.Running or self.status != CampaignStatus.Draft or \
-                self.status != CampaignStatus.Scheduled:
-            raise CancelCampaignError("campaign not active or draft or scheduled")
-        self.status = CampaignStatus.Cancelled
-        self._end_time = datetime.now(UTC)
+    def cancel(self) -> None:
+        self._apply_action("cancel")
+        self._cancelled_at = datetime.now(UTC)
 
-    def assign_employee(self, emp: Employee) -> None:
-        if emp.id in self._employees:
+    def schedule(self, start_time: datetime) -> None:
+        if start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=timezone.utc)
+        now = datetime.now(UTC)
+        start = start_time.replace(microsecond=0)
+        if start < now:
+            raise CampaignScheduleError("Cannot schedule a campaign in the past")
+        self._apply_action("schedule")
+        self._scheduled_at = start_time
+
+    def archive(self) -> None:
+        self._apply_action("archive")
+
+    def assign_employee(self, emp_id: UUID) -> None:
+        if emp_id in self._employees:
             raise AddCampaignEmployeeError("employee has already been added")
-        self._employees[emp.id] = CampaignEmployee(self.id, emp.id)
+        self._employees[emp_id] = CampaignEmployee(self.id, emp_id)
 
-    def remove_employee(self, emp: Employee) -> None:
-        if emp.id not in self._employees:
+    def remove_employee(self, emp_id: UUID) -> None:
+        if emp_id not in self._employees:
             raise DeleteCampaignEmployeeError("couldn't find an employee")
-        del self._employees[emp.id]
+        del self._employees[emp_id]

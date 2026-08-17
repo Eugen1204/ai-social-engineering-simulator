@@ -5,4 +5,5 @@ Summary: Add your description here
 Requires-Python: >=3.13
 Description-Content-Type: text/markdown
 Requires-Dist: fastapi[standard]>=0.139.0
+Requires-Dist: transitions>=0.9.3
 Requires-Dist: uvicorn>=0.51.0

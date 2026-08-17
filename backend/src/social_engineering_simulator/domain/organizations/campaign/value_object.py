@@ -1,9 +1,9 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidNameCampaignError, \
-    WrongCampaignStatus
+    WrongCampaignStatus, InvalidStateTransitionError
 
 
 @dataclass(frozen=True)
@@ -40,5 +40,6 @@ class CampaignStatus(Enum):
             return cls(value)
         except ValueError:
             raise WrongCampaignStatus("Campaign status not found")
+
 
 
