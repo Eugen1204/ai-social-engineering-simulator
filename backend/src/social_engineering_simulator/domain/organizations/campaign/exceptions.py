@@ -57,3 +57,14 @@ class NotOpenedYetError(Exception):
 class AlreadyClickedError(Exception):
     pass
 
+
+class InvalidStateTransitionError(Exception):
+    pass
+
+
+class CampaignValidationError(Exception):
+    pass
+
+
+class CampaignScheduleError(Exception):
+    pass
