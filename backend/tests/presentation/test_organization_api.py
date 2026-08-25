@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService
 from social_engineering_simulator.presentation.main import app
-from social_engineering_simulator.presentation.api.v1.dependencies import get_repository
+from social_engineering_simulator.presentation.api.v1.dependencies import get_organization_repository
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
     OrganizationRepoInMemory
 
@@ -15,7 +15,7 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.organizat
 def client():
     """Фикстура для создания тестового клиента с InMemory-репозиторием."""
     repo = OrganizationRepoInMemory()
-    app.dependency_overrides[get_repository] = lambda: repo
+    app.dependency_overrides[get_organization_repository] = lambda: repo
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()

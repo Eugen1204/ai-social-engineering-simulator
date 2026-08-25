@@ -8,7 +8,6 @@ from social_engineering_simulator.domain.organizations.value_object import Indus
 from social_engineering_simulator.domain.organizations.department.entity import Department, DepartmentName
 from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError, \
     OrganizationNotFoundError
-from functools import lru_cache
 
 
 class CreateOrganizationService:

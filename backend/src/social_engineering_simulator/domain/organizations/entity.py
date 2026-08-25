@@ -125,9 +125,3 @@ class Organization:
             if e.department_id == dep_id:
                 lst.append(e.id)
         return lst
-
-
-
-
-
-
