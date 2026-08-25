@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse
+from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
+    ScheduleCampaignRequest
 from social_engineering_simulator.application.services.exception_create_organization import OrganizationNotFoundError
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
@@ -97,5 +98,22 @@ class CancelCampaignService:
         self.repo.save(campaign)
 
         return CampaignResponse(id=campaign.id, name=campaign.name.value, status=campaign.status.value)
+
+
+class ScheduleCampaignService:
+    def __init__(self, repo_campaign: CampaignRepository):
+        self.repo_campaign = repo_campaign
+
+    def execute(self, request: ScheduleCampaignRequest) -> CampaignResponse:
+        campaign_id = request.campaign_id
+        camp = self.repo_campaign.get_by_id(campaign_id=campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with id {campaign_id} not found")
+
+        camp.schedule(start_time=request.start_time)
+        self.repo_campaign.save(camp)
+
+        return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value)
+
 
 

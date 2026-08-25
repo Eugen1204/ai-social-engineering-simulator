@@ -3,9 +3,10 @@ from uuid import uuid4
 
 import pytest
 
+from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
 from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError, \
-    CampaignInitError
+    CampaignInitError, CampaignScheduleError
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
 
 
@@ -20,6 +21,9 @@ def test_edit_status_campaign(campaign_1):
 
     assert campaign_1.status == CampaignStatus.Scheduled
 
+    with pytest.raises(CampaignScheduleError):
+        campaign_1.schedule(start_time=datetime.now(UTC) - timedelta(days=1))
+
     campaign_1.return_to_draft()
 
     assert campaign_1.status == CampaignStatus.Draft
@@ -27,6 +31,9 @@ def test_edit_status_campaign(campaign_1):
     campaign_1.start()
 
     assert campaign_1.status == CampaignStatus.Running
+
+    with pytest.raises(InvalidStateTransitionError):
+        campaign_1.schedule(start_time=datetime.now(UTC) + timedelta(days=1))
 
     campaign_1.finish()
 

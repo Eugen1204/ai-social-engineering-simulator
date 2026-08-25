@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 
@@ -15,4 +16,10 @@ class CampaignResponse:
     id: UUID
     name: str
     status: str
+
+
+@dataclass(frozen=True)
+class ScheduleCampaignRequest:
+    campaign_id: UUID
+    start_time: datetime
 

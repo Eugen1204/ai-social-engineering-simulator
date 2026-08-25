@@ -2,13 +2,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest
+from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, ScheduleCampaignRequest
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
-    FinishCampaignService, CancelCampaignService
+    FinishCampaignService, CancelCampaignService, ScheduleCampaignService
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_campaign_service, \
-    start_campaign_service, finish_campaign_service, cancel_campaign_service
+    start_campaign_service, finish_campaign_service, cancel_campaign_service, schedule_campaign_service
 from social_engineering_simulator.presentation.api.v1.schemas.campaign import CampaignHttpResponse, \
-    CampaignCreateRequest
+    CampaignCreateRequest, ScheduleCampaignHttpRequest
 
 router = APIRouter(prefix="/campaigns")
 
@@ -52,3 +52,16 @@ async def cancel_campaign(campaign_id: UUID, service: CancelCampaignService = De
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
                                 status=result.status)
+
+
+@router.post("/{campaign_id}/schedule", response_model=CampaignHttpResponse, status_code=200)
+async def schedule_campaign(campaign_id: UUID, data: ScheduleCampaignHttpRequest,
+                            service: ScheduleCampaignService = Depends(schedule_campaign_service)) \
+        -> CampaignHttpResponse:
+    request = ScheduleCampaignRequest(campaign_id=campaign_id, start_time=data.start_time)
+    result = service.execute(request)
+
+    return CampaignHttpResponse(id=result.id,
+                                name=result.name,
+                                status=result.status)
+

@@ -3,7 +3,7 @@ from functools import lru_cache
 from fastapi import Depends
 
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
-    StartCampaignService, FinishCampaignService, CancelCampaignService
+    StartCampaignService, FinishCampaignService, CancelCampaignService, ScheduleCampaignService
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService, \
     GetOrganizationService
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
@@ -52,3 +52,10 @@ def finish_campaign_service(repo: CampaignRepository = Depends(get_repository_ca
 def cancel_campaign_service(repo: CampaignRepository = Depends(get_repository_campaign)) \
         -> CancelCampaignService:
     return CancelCampaignService(repo=repo)
+
+
+def schedule_campaign_service(repo: CampaignRepository = Depends(get_repository_campaign)) \
+        -> ScheduleCampaignService:
+    return ScheduleCampaignService(repo_campaign=repo)
+
+

@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,3 +17,6 @@ class CampaignCreateRequest(BaseModel):
     template_id: UUID
     landing_page_id: UUID
 
+
+class ScheduleCampaignHttpRequest(BaseModel):
+    start_time: datetime

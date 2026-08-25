@@ -5,7 +5,8 @@ from fastapi.responses import JSONResponse
 from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError, \
     OrganizationNotFoundError
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
-from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError
+from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError, \
+    CampaignScheduleError
 from social_engineering_simulator.domain.organizations.exceptions import (
     EmployeeAddError,
     EmployeeDeleteError,
@@ -53,5 +54,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def handler_duplicate_department(request: Request, exc: InvalidStateTransitionError):
         return JSONResponse(
             status_code=409,
+            content={"detail": str(exc)}
+        )
+
+    @app.exception_handler(CampaignScheduleError)
+    async def handler_duplicate_department(request: Request, exc: CampaignScheduleError):
+        return JSONResponse(
+            status_code=400,
             content={"detail": str(exc)}
         )

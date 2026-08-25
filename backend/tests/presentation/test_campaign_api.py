@@ -3,6 +3,7 @@ from uuid import uuid4, UUID
 import pytest
 from starlette.testclient import TestClient
 
+from social_engineering_simulator.domain.organizations.campaign.exceptions import CampaignScheduleError
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignStatus
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
     OrganizationRepoInMemory
@@ -66,6 +67,55 @@ def test_create_campaign(client):
     data_2 = response_2.json()
     response_finished = client.post(f"campaigns/{data_2['id']}/finish")
     assert response_finished.status_code == 409
+
+
+def test_schedule_campaign(client):
+    repo_org = app.dependency_overrides[get_organization_repository]()
+
+    payload = {
+        "name": "TestOrg",
+        "industry": "IT Company",
+        "departments": ["HR", "IT"]
+    }
+
+    response_org = client.post("/organizations/", json=payload)
+    data = response_org.json()
+
+    assert repo_org.exists(UUID(data["id"]))
+
+    payload = {
+        "name": "TestCampaign",
+        "organization_id": f"{data['id']}",
+        "template_id": f"{uuid4()}",
+        "landing_page_id": f"{uuid4()}"
+    }
+
+    response_camp = client.post("/campaigns/", json=payload)
+    data_camp = response_camp.json()
+
+    payload_schedule = {
+        "start_time": "2026-09-01T15:00:00Z"
+    }
+    payload_schedule_past = {
+        "start_time": "2025-09-01T15:00:00Z"
+    }
+
+    response_past = client.post(f"/campaigns/{data_camp['id']}/schedule", json=payload_schedule_past)
+    assert response_past.status_code == 400
+
+    wrong_campaign_id = uuid4()
+    response_wrong_campaign = client.post(f"/campaigns/{wrong_campaign_id}/schedule",
+                                          json=payload_schedule)
+    assert response_wrong_campaign.status_code == 404
+
+    response_schedule = client.post(f"/campaigns/{data_camp['id']}/schedule", json=payload_schedule)
+    assert response_schedule.status_code == 200
+    assert response_schedule.json()['status'] == CampaignStatus.Scheduled.value
+
+
+
+
+
 
 
 
