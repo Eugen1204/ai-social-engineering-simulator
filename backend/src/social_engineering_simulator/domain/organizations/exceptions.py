@@ -43,6 +43,6 @@ class WrongIndustryError(Exception):
     pass
 
 
-class OrganizationNotFound(Exception):
+class OrganizationNotFoundError(Exception):
     pass
 
