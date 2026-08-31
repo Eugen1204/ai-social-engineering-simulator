@@ -3,8 +3,8 @@ from datetime import datetime, UTC, timezone
 from uuid import UUID, uuid4
 
 from social_engineering_simulator.domain.organizations.campaign.CampaignEmployee import CampaignEmployee
-from social_engineering_simulator.domain.organizations.campaign.exceptions import StartCampaignError, \
-    CampaignInitError, FinishCampaignError, AddCampaignEmployeeError, DeleteCampaignEmployeeError, CancelCampaignError, \
+from social_engineering_simulator.domain.organizations.campaign.exceptions import \
+    CampaignInitError, AddCampaignEmployeeError, DeleteCampaignEmployeeError, \
     CampaignValidationError, CampaignScheduleError
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
 from social_engineering_simulator.domain.organizations.campaign.workflow import CampaignWorkflow

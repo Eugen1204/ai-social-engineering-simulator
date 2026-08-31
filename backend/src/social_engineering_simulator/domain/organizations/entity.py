@@ -125,3 +125,7 @@ class Organization:
             if e.department_id == dep_id:
                 lst.append(e.id)
         return lst
+
+    def get_employee(self, emp_id: UUID) -> Employee:
+        if emp_id in self._employees:
+            return self._employees[emp_id]

@@ -20,3 +20,12 @@ class CampaignCreateRequest(BaseModel):
 
 class ScheduleCampaignHttpRequest(BaseModel):
     start_time: datetime
+
+
+class EmployeeCampaignRequest(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    department_id: UUID
+
+

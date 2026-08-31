@@ -2,11 +2,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 
-from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError, \
-    OrganizationNotFoundError
+from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
 from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError, \
-    CampaignScheduleError
+    CampaignScheduleError, AddCampaignEmployeeError, DeleteCampaignEmployeeError
 from social_engineering_simulator.domain.organizations.exceptions import (
     EmployeeAddError,
     EmployeeDeleteError,
@@ -16,7 +15,7 @@ from social_engineering_simulator.domain.organizations.exceptions import (
     ChangeDepartmentError,
     DepartmentDelError,
     DepartmentNotFoundError,
-    InvalidNameOrganizationError,
+    InvalidNameOrganizationError, EmployeeNotFoundError, OrganizationNotFoundError,
 )
 
 
@@ -37,7 +36,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(OrganizationNotFoundError)
-    async def handler_duplicate_department(request: Request, exc: OrganizationNotFoundError):
+    async def organization_not_found(request: Request, exc: OrganizationNotFoundError):
         return JSONResponse(
             status_code=404,
             content={"detail": str(exc)}
@@ -61,5 +60,26 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def handler_duplicate_department(request: Request, exc: CampaignScheduleError):
         return JSONResponse(
             status_code=400,
+            content={"detail": str(exc)}
+        )
+
+    @app.exception_handler(EmployeeNotFoundError)
+    async def employee_not_found(request: Request, exc: EmployeeNotFoundError):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": str(exc)}
+        )
+
+    @app.exception_handler(AddCampaignEmployeeError)
+    async def duplicate_employee(request: Request, exc: AddCampaignEmployeeError):
+        return JSONResponse(
+            status_code=409,
+            content={"detail": str(exc)}
+        )
+
+    @app.exception_handler(DeleteCampaignEmployeeError)
+    async def delete_emp_error(request: Request, exc: DeleteCampaignEmployeeError):
+        return JSONResponse(
+            status_code=404,
             content={"detail": str(exc)}
         )

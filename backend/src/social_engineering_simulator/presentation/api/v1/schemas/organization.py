@@ -18,3 +18,23 @@ class OrganizationHttpResponse(BaseModel):
     name: str
     industry: str
     departments: int
+
+
+class AddEmployeeRequest(BaseModel):
+    name: str
+    email: str
+    dep_name: str
+
+
+class AddEmployeeRequestResponse(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    org_id: UUID
+
+
+class GetEmployeeRequestResponse(BaseModel):
+    id: UUID
+    name: str
+    email: str
+    org_id: UUID

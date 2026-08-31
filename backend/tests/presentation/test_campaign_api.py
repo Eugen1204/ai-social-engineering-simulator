@@ -3,7 +3,6 @@ from uuid import uuid4, UUID
 import pytest
 from starlette.testclient import TestClient
 
-from social_engineering_simulator.domain.organizations.campaign.exceptions import CampaignScheduleError
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignStatus
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
     OrganizationRepoInMemory
@@ -111,6 +110,27 @@ def test_schedule_campaign(client):
     response_schedule = client.post(f"/campaigns/{data_camp['id']}/schedule", json=payload_schedule)
     assert response_schedule.status_code == 200
     assert response_schedule.json()['status'] == CampaignStatus.Scheduled.value
+
+
+def test_add_employee(client):
+    payload = {
+        "name": "TestOrg",
+        "industry": "IT Company",
+        "departments": ["HR", "IT"]
+    }
+
+    response_org = client.post("/organizations/", json=payload)
+
+    data = response_org.json()
+
+    payload = {
+        "name": "TestCampaign",
+        "organization_id": f"{data['id']}",
+        "template_id": f"{uuid4()}",
+        "landing_page_id": f"{uuid4()}"
+    }
+
+    response_camp = client.post("/campaigns/", json=payload)
 
 
 
