@@ -46,3 +46,6 @@ class WrongIndustryError(Exception):
 class OrganizationNotFoundError(Exception):
     pass
 
+
+class EmployeeNotFoundError(Exception):
+    pass

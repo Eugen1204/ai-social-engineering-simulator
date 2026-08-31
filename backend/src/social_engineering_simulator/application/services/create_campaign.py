@@ -2,12 +2,12 @@ from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest
-from social_engineering_simulator.application.services.exception_create_organization import OrganizationNotFoundError
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
 from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
+from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
