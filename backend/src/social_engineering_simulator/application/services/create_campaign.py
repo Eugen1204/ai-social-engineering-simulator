@@ -3,6 +3,9 @@ from uuid import UUID
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
+from social_engineering_simulator.domain.email_template.repository import TemplateRepository
+from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
+    TemplateNotInOrganization
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
 from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
@@ -15,20 +18,26 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.organizat
 
 
 class CreateCampaignService:
-    def __init__(self, repo_campaign: CampaignRepository, repo_org: OrganizationRepository):
+    def __init__(self, repo_campaign: CampaignRepository, repo_org: OrganizationRepository,
+                 repo_template: TemplateRepository):
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
+        self.repo_template = repo_template
 
     def execute(self, request: CreateCampaignRequest) -> CampaignResponse:
         name = CampaignName(request.name)
         org_id = request.organization_id
         if not self.repo_org.get_by_id(organization_id=org_id):
             raise OrganizationNotFoundError(f"Organization with id {org_id} not found")
-        temp_id = request.template_id
+        template = self.repo_template.get_by_id(template_id=request.template_id)
+        if template is None:
+            raise TemplateNotFoundError(f'Template with {request.template_id} not found')
+        if template.organization_id != request.organization_id:
+            raise TemplateNotInOrganization("the template does not belong to the organization")
         land_page_id = request.landing_page_id
 
         camp = Campaign(name=name, organization_id=org_id,
-                        template_id=temp_id, landing_page_id=land_page_id,
+                        template_id=template.id, landing_page_id=land_page_id,
                         status=CampaignStatus.Draft)
 
         self.repo_campaign.save(camp)

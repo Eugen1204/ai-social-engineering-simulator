@@ -8,13 +8,20 @@ from social_engineering_simulator.application.services.create_campaign import Cr
     StartCampaignService, FinishCampaignService, CancelCampaignService, ScheduleCampaignService
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService, \
     GetOrganizationService, AddEmployeeInOrganization, GetEmployeeInOrganization
+from social_engineering_simulator.application.services.create_template import PreviewTemplateService, \
+    CreateTemplateService
+from social_engineering_simulator.domain.email_template.repository import TemplateRepository
+from social_engineering_simulator.domain.email_template.services.template_engine import EngineTemplate
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
     OrganizationRepoInMemory
+from social_engineering_simulator.infrastructure.persistence.in_memory.template_repository import \
+    TemplateRepositoryInMemory
 
 
+@lru_cache()
 def get_organization_repository() -> OrganizationRepository:
     return OrganizationRepoInMemory()
 
@@ -31,14 +38,9 @@ def get_organization_service(
     return GetOrganizationService(repo=repo)
 
 
+@lru_cache()
 def get_repository_campaign() -> CampaignRepository:
     return CampaignRepoInMemory()
-
-
-def get_create_campaign_service(repo_campaign: CampaignRepository = Depends(get_repository_campaign),
-                                repo_org: OrganizationRepository = Depends(get_organization_repository)) \
-        -> CreateCampaignService:
-    return CreateCampaignService(repo_campaign=repo_campaign, repo_org=repo_org)
 
 
 def start_campaign_service(repo: CampaignRepository = Depends(get_repository_campaign)) \
@@ -79,5 +81,33 @@ def add_emp_in_org(
 
 
 def get_emp_in_org(repo: OrganizationRepository = Depends(get_organization_repository)
-) -> GetEmployeeInOrganization:
+                   ) -> GetEmployeeInOrganization:
     return GetEmployeeInOrganization(repo=repo)
+
+
+@lru_cache()
+def get_repository_template() -> TemplateRepository:
+    return TemplateRepositoryInMemory()
+
+
+@lru_cache()
+def get_engine_template() -> EngineTemplate:
+    return EngineTemplate()
+
+
+def preview_template(template_repo: TemplateRepository = Depends(get_repository_template),
+                     repo_org: OrganizationRepository = Depends(get_organization_repository),
+                     engine: EngineTemplate = Depends(get_engine_template)) -> PreviewTemplateService:
+    return PreviewTemplateService(repo_template=template_repo, repo_org=repo_org, engine=engine)
+
+
+def get_create_campaign_service(repo_campaign: CampaignRepository = Depends(get_repository_campaign),
+                                repo_org: OrganizationRepository = Depends(get_organization_repository),
+                                repo_template: TemplateRepository = Depends(get_repository_template)) \
+        -> CreateCampaignService:
+    return CreateCampaignService(repo_campaign=repo_campaign, repo_org=repo_org, repo_template=repo_template)
+
+
+def add_template(repo_template: TemplateRepository = Depends(get_repository_template),
+                 repo_org: OrganizationRepository = Depends(get_organization_repository)) -> CreateTemplateService:
+    return CreateTemplateService(repo_template=repo_template, repo_org=repo_org)

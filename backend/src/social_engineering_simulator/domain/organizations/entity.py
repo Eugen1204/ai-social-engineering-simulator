@@ -78,7 +78,7 @@ class Organization:
     def remove_employee(self, employee_id: UUID):
         employee = self._employees.get(employee_id)
         if not employee:
-            raise EmployeeDeleteError(f"Employee {employee_id} does not exist in the organization")
+            raise EmployeeDeleteError(f"Employee {employee_id} doesn't exist in the organization")
         dep_employee = self._departments.get(employee.department_id)
         if dep_employee:
             dep_employee.remove_employee_id(employee.id)
