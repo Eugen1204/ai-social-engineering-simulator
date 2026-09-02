@@ -9,7 +9,7 @@ from social_engineering_simulator.application.services.create_campaign import Cr
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService, \
     GetOrganizationService, AddEmployeeInOrganization, GetEmployeeInOrganization
 from social_engineering_simulator.application.services.create_template import PreviewTemplateService, \
-    CreateTemplateService
+    CreateTemplateService, GetTemplateService, UpdateTemplateService
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.template_engine import EngineTemplate
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
@@ -111,3 +111,14 @@ def get_create_campaign_service(repo_campaign: CampaignRepository = Depends(get_
 def add_template(repo_template: TemplateRepository = Depends(get_repository_template),
                  repo_org: OrganizationRepository = Depends(get_organization_repository)) -> CreateTemplateService:
     return CreateTemplateService(repo_template=repo_template, repo_org=repo_org)
+
+
+def get_template_service(repo_template: TemplateRepository = Depends(get_repository_template),
+                         repo_org: OrganizationRepository = Depends(get_organization_repository)) -> GetTemplateService:
+    return GetTemplateService(repo_template=repo_template, repo_org=repo_org)
+
+
+def update_template_service(repo_template: TemplateRepository = Depends(get_repository_template),
+                            repo_org: OrganizationRepository = Depends(
+                                get_organization_repository)) -> UpdateTemplateService:
+    return UpdateTemplateService(repo_template=repo_template, repo_org=repo_org)

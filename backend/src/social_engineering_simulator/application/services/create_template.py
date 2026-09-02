@@ -1,5 +1,6 @@
 from social_engineering_simulator.application.dto.create_template import CreateTemplateRequest, \
-    CreateTemplateRequestResponse, GetTemplateRequest, PreviewTemplateRequest, TemplateVariablesResponse
+    CreateTemplateRequestResponse, GetTemplateRequest, PreviewTemplateRequest, TemplateVariablesResponse, \
+    UpdateTemplateRequest, UpdateTemplateResponse
 from social_engineering_simulator.domain.email_template.entity import Template
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotInOrganization, \
@@ -79,6 +80,29 @@ class PreviewTemplateService:
 
         res = self.engine.render(template=temp, context_template=context)
         return TemplateVariablesResponse(res.subject, res.content)
+
+
+class UpdateTemplateService:
+    def __init__(self, repo_template: TemplateRepository, repo_org: OrganizationRepository):
+        self.repo_template = repo_template
+        self.repo_org = repo_org
+
+    def execute(self, request: UpdateTemplateRequest) -> UpdateTemplateResponse:
+        template = self.repo_template.get_by_id(request.template_id)
+        if self.repo_org.get_by_id(template.organization_id) is None:
+            raise OrganizationNotFoundError("Organization not found")
+        if template is None:
+            raise TemplateNotFoundError("Template not found")
+        if template.organization_id != request.organization_id:
+            raise TemplateNotInOrganization("the template does not belong to the organization")
+        template.update(new_content=request.content, new_subject=request.subject)
+
+        return UpdateTemplateResponse(organization_id=template.organization_id,
+                                      template_id=template.id,
+                                      content=template.content.value,
+                                      subject=template.subject.value,
+                                      version=template.version)
+
 
 
 

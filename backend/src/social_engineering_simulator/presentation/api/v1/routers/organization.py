@@ -2,16 +2,19 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from social_engineering_simulator.application.dto.create_template import PreviewTemplateRequest, CreateTemplateRequest
+from social_engineering_simulator.application.dto.create_template import PreviewTemplateRequest, CreateTemplateRequest, \
+    GetTemplateRequest, UpdateTemplateRequest
 from social_engineering_simulator.application.services.create_organization import GetOrganizationService, \
     AddEmployeeInOrganization, GetEmployeeInOrganization
 from social_engineering_simulator.application.services.create_template import PreviewTemplateService, \
-    CreateTemplateService
+    CreateTemplateService, GetTemplateService, UpdateTemplateService
 from social_engineering_simulator.presentation.api.v1.schemas.organization import OrganizationHttpResponse, \
     CreateOrganizationHttpRequest, AddEmployeeRequest, AddEmployeeRequestResponse, GetEmployeeRequestResponse, \
-    TemplateVariables, TemplateVariablesResponse, AddTemplateResponse, AddTemplateRequest
+    TemplateVariables, TemplateVariablesResponse, AddTemplateResponse, AddTemplateRequest, TemplateResponse, \
+    UpdateTemplateHttpResponse, UpdateTemplateHttpRequest
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_organization_service, \
-    CreateOrganizationService, get_organization_service, add_emp_in_org, get_emp_in_org, preview_template, add_template
+    CreateOrganizationService, get_organization_service, add_emp_in_org, get_emp_in_org, preview_template, \
+    add_template, update_template_service, get_template_service
 from social_engineering_simulator.application.dto.create_organization import CreateOrganizationRequest, EmployeeRequest
 
 router = APIRouter(prefix="/organizations")
@@ -86,6 +89,34 @@ async def add_template(organization_id: UUID, request: AddTemplateRequest,
                                organization_id=organization_id)
 
 
+@router.get("/{organization_id}/templates/{template_id}", status_code=200, response_model=TemplateResponse)
+async def get_template(organization_id: UUID, template_id: UUID,
+                       service: GetTemplateService = Depends(get_template_service)) -> TemplateResponse:
+    request = GetTemplateRequest(id_template=template_id, id_organization=organization_id)
+    result = service.execute(request)
+
+    return TemplateResponse(id=result.id,
+                            organization_id=result.organization_id,
+                            name=result.name,
+                            subject=result.subject,
+                            content=result.content,
+                            version=result.version,
+                            created_at=result.created_at)
 
 
+@router.patch("/{organization_id}/templates/{template_id}", status_code=200, response_model=UpdateTemplateHttpResponse)
+async def update_template(organization_id: UUID, template_id: UUID, update_data: UpdateTemplateHttpRequest,
+                          service: UpdateTemplateService = Depends(update_template_service)) \
+        -> UpdateTemplateHttpResponse:
+    request = UpdateTemplateRequest(organization_id=organization_id,
+                                    template_id=template_id,
+                                    content=update_data.content,
+                                    subject=update_data.subject)
+    result = service.execute(request)
+
+    return UpdateTemplateHttpResponse(organization_id=result.organization_id,
+                                      template_id=result.template_id,
+                                      content=result.content,
+                                      subject=result.subject,
+                                      version=result.version)
 

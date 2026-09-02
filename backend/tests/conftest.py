@@ -3,7 +3,9 @@ from social_engineering_simulator.domain.organizations.entity import Organizatio
     Department, DepartmentName
 from social_engineering_simulator.domain.organizations.department.employee.entity import Employee, EmployeeName,\
     Email
-
+from social_engineering_simulator.domain.email_template.entity import Template
+from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
+from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
 
 @pytest.fixture()
 def org_name():
@@ -70,6 +72,21 @@ def organization_with_employee(organization_with_department, employee, it_depart
 
     return organization_with_department
 
+
+@pytest.fixture()
+def templates(organization_with_employee) -> Template:
+    new_templates = Template(organization_id=organization_with_employee.id,
+                             subject="Hello {{ name }}",
+                             content="can you confirm your password on this {{ link }}")
+    return new_templates
+
+
+@pytest.fixture()
+def org_with_campaign(organization_with_employee, templates) -> Campaign:
+    camp = Campaign(name=CampaignName("Fishhhh"), organization_id=organization_with_employee.id,
+                    template_id=templates.id, landing_page_id=uuid4(), status=CampaignStatus.Draft)
+
+    return Campaign
 
 
 
