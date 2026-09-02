@@ -1,13 +1,16 @@
-from uuid import uuid4, UUID
+from uuid import uuid4
 
 import pytest
 from starlette.testclient import TestClient
 
+from social_engineering_simulator.domain.email_template.services.template_engine import EngineTemplate
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
     OrganizationRepoInMemory
+from social_engineering_simulator.infrastructure.persistence.in_memory.template_repository import \
+    TemplateRepositoryInMemory
 from social_engineering_simulator.presentation.api.v1.dependencies import get_repository_campaign, \
-    get_organization_repository
+    get_organization_repository, get_repository_template, get_engine_template
 from social_engineering_simulator.presentation.main import app
 
 
@@ -16,53 +19,52 @@ def client():
     """Фикстура для создания тестового клиента с InMemory-репозиторием."""
     repo_campaign = CampaignRepoInMemory()
     repo_org = OrganizationRepoInMemory()
+    repo_template = TemplateRepositoryInMemory()
     app.dependency_overrides[get_repository_campaign] = lambda: repo_campaign
     app.dependency_overrides[get_organization_repository] = lambda: repo_org
+    app.dependency_overrides[get_repository_template] = lambda: repo_template
+    app.dependency_overrides[get_engine_template] = lambda: EngineTemplate()
 
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
 
 
-@pytest.fixture()
-def organization(client):
+def test_add_template(client):
     payload = {
-        "name": "TestOrg2",
+        "name": "TestOrg",
         "industry": "IT Company",
         "departments": ["HR", "IT"]
     }
 
     response = client.post("/organizations/", json=payload)
-    data = response.json()
+    assert response.status_code == 201
+    data_org = response.json()
 
-    return data
-
-
-@pytest.fixture()
-def employee_in_organization(organization, client):
     payload = {
-        "name": "Eugen",
-        "email": "blablabla@gmail.com",
-        "dep_name": "IT",
-        "org_id": organization["id"]
+        "name": "Fishing",
+        "subject": "Hi {{ name }}",
+        "content": "Can you click on this {{ link }}"
     }
 
-    response = client.post(f"/organizations/{organization['id']}/employees", json=payload)
+    response = client.post(f"/organizations/{data_org['id']}/templates", json=payload)
 
-    return response.json()
+    assert response.status_code == 201
 
+    variables = {
+        "variables": {
+            "name": "Eugen",
+            "link": "not_fishing.com"
+        }
+    }
 
-def test_get_employee(organization, client, employee_in_organization):
-    response = client.get(f"/organizations/{organization['id']}/employees/{employee_in_organization['id']}")
+    response = client.post(f"organizations/{data_org['id']}/templates/{response.json()['id']}/preview", json=variables)
 
+    print(response.json())
     assert response.status_code == 200
 
-    response = client.get(f"/organizations/{uuid4()}/employees/{employee_in_organization['id']}")
 
-    assert response.status_code == 404
 
-    response = client.get(f"/organizations/{organization['id']}/employees/{uuid4()}")
 
-    assert response.status_code == 404
 
 

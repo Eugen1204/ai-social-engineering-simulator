@@ -2,12 +2,16 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from social_engineering_simulator.application.dto.create_template import PreviewTemplateRequest, CreateTemplateRequest
 from social_engineering_simulator.application.services.create_organization import GetOrganizationService, \
     AddEmployeeInOrganization, GetEmployeeInOrganization
+from social_engineering_simulator.application.services.create_template import PreviewTemplateService, \
+    CreateTemplateService
 from social_engineering_simulator.presentation.api.v1.schemas.organization import OrganizationHttpResponse, \
-    CreateOrganizationHttpRequest, AddEmployeeRequest, AddEmployeeRequestResponse, GetEmployeeRequestResponse
+    CreateOrganizationHttpRequest, AddEmployeeRequest, AddEmployeeRequestResponse, GetEmployeeRequestResponse, \
+    TemplateVariables, TemplateVariablesResponse, AddTemplateResponse, AddTemplateRequest
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_organization_service, \
-    CreateOrganizationService, get_organization_service, add_emp_in_org, get_emp_in_org
+    CreateOrganizationService, get_organization_service, add_emp_in_org, get_emp_in_org, preview_template, add_template
 from social_engineering_simulator.application.dto.create_organization import CreateOrganizationRequest, EmployeeRequest
 
 router = APIRouter(prefix="/organizations")
@@ -54,5 +58,34 @@ async def get_employee_in_organization(organization_id: UUID, employee_id: UUID,
                                        service: GetEmployeeInOrganization = Depends(get_emp_in_org)):
     result = service.execute(employee_id=employee_id, org_id=organization_id)
     return GetEmployeeRequestResponse(id=result.id, name=result.name, email=result.email, org_id=result.org_id)
+
+
+@router.post("/{organization_id}/templates/{template_id}/preview", status_code=200,
+             response_model=TemplateVariablesResponse)
+async def template_preview(organization_id: UUID, template_id: UUID, variables: TemplateVariables,
+                           service: PreviewTemplateService = Depends(preview_template)) -> TemplateVariablesResponse:
+    request = PreviewTemplateRequest(organization_id=organization_id, template_id=template_id,
+                                     variables=variables.variables)
+    result = service.execute(request)
+
+    return TemplateVariablesResponse(subject=result.subject, content=result.content)
+
+
+@router.post("/{organization_id}/templates", status_code=201, response_model=AddTemplateResponse)
+async def add_template(organization_id: UUID, request: AddTemplateRequest,
+                       service: CreateTemplateService = Depends(add_template)) -> AddTemplateResponse:
+    template_request = CreateTemplateRequest(organization_id=organization_id,
+                                             name=request.name,
+                                             subject=request.subject,
+                                             content=request.content)
+
+    result = service.execute(template_request)
+
+    return AddTemplateResponse(id=result.id, name=result.name, subject=result.subject,
+                               content=result.content, version=result.version, created_at=result.created_at,
+                               organization_id=organization_id)
+
+
+
 
 

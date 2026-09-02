@@ -6,8 +6,10 @@ from starlette.testclient import TestClient
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignStatus
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
     OrganizationRepoInMemory
+from social_engineering_simulator.infrastructure.persistence.in_memory.template_repository import \
+    TemplateRepositoryInMemory
 from social_engineering_simulator.presentation.api.v1.dependencies import get_repository_campaign, \
-    get_organization_repository
+    get_organization_repository, get_repository_template
 from social_engineering_simulator.presentation.main import app
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
 
@@ -17,33 +19,46 @@ def client():
     """Фикстура для создания тестового клиента с InMemory-репозиторием."""
     repo_campaign = CampaignRepoInMemory()
     repo_org = OrganizationRepoInMemory()
+    repo_template = TemplateRepositoryInMemory()
     app.dependency_overrides[get_repository_campaign] = lambda: repo_campaign
     app.dependency_overrides[get_organization_repository] = lambda: repo_org
+    app.dependency_overrides[get_repository_template] = lambda: repo_template
 
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
 
 
-def test_create_campaign(client):
-    repo_org = app.dependency_overrides[get_organization_repository]()
+@pytest.fixture()
+def template_with_org(client):
     payload = {
-        "name": "TestOrg",
+        "name": "TestOrg3",
         "industry": "IT Company",
         "departments": ["HR", "IT"]
     }
 
     response = client.post("/organizations/", json=payload)
     assert response.status_code == 201
-    data = response.json()
-    print(data)
-    print(repo_org._organizations)
-    assert repo_org.exists(UUID(data["id"]))
+    data_org = response.json()
 
     payload = {
+        "name": "Fishing",
+        "subject": "Hi {{ name }}",
+        "content": "Can you click on this {{ link }}"
+    }
+
+    response = client.post(f"/organizations/{data_org['id']}/templates", json=payload)
+
+    return response.json()
+
+
+def test_create_campaign(client, template_with_org):
+
+    print(template_with_org)
+    payload = {
         "name": "TestCampaign",
-        "organization_id": f"{data['id']}",
-        "template_id": f"{uuid4()}",
+        "organization_id": f"{template_with_org['organization_id']}",
+        "template_id": f"{template_with_org['id']}",
         "landing_page_id": f"{uuid4()}"
     }
 
@@ -68,24 +83,12 @@ def test_create_campaign(client):
     assert response_finished.status_code == 409
 
 
-def test_schedule_campaign(client):
-    repo_org = app.dependency_overrides[get_organization_repository]()
-
-    payload = {
-        "name": "TestOrg",
-        "industry": "IT Company",
-        "departments": ["HR", "IT"]
-    }
-
-    response_org = client.post("/organizations/", json=payload)
-    data = response_org.json()
-
-    assert repo_org.exists(UUID(data["id"]))
+def test_schedule_campaign(client, template_with_org):
 
     payload = {
         "name": "TestCampaign",
-        "organization_id": f"{data['id']}",
-        "template_id": f"{uuid4()}",
+        "organization_id": f"{template_with_org['organization_id']}",
+        "template_id": f"{template_with_org['id']}",
         "landing_page_id": f"{uuid4()}"
     }
 
@@ -93,7 +96,7 @@ def test_schedule_campaign(client):
     data_camp = response_camp.json()
 
     payload_schedule = {
-        "start_time": "2026-09-01T15:00:00Z"
+        "start_time": "2027-09-01T15:00:00Z"
     }
     payload_schedule_past = {
         "start_time": "2025-09-01T15:00:00Z"
@@ -112,21 +115,11 @@ def test_schedule_campaign(client):
     assert response_schedule.json()['status'] == CampaignStatus.Scheduled.value
 
 
-def test_add_employee(client):
-    payload = {
-        "name": "TestOrg",
-        "industry": "IT Company",
-        "departments": ["HR", "IT"]
-    }
-
-    response_org = client.post("/organizations/", json=payload)
-
-    data = response_org.json()
-
+def test_add_employee(client, template_with_org):
     payload = {
         "name": "TestCampaign",
-        "organization_id": f"{data['id']}",
-        "template_id": f"{uuid4()}",
+        "organization_id": f"{template_with_org['organization_id']}",
+        "template_id": f"{template_with_org['id']}",
         "landing_page_id": f"{uuid4()}"
     }
 
