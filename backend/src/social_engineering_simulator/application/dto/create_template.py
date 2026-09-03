@@ -41,3 +41,21 @@ class TemplateVariablesResponse:
     content: str
 
 
+@dataclass
+class UpdateTemplateRequest:
+    organization_id: UUID
+    template_id: UUID
+    content: str | None
+    subject: str | None
+
+
+@dataclass
+class UpdateTemplateResponse:
+    organization_id: UUID
+    template_id: UUID
+    content: str
+    subject: str
+    version: int
+
+
+

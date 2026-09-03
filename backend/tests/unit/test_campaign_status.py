@@ -13,7 +13,8 @@ from social_engineering_simulator.domain.organizations.campaign.value_object imp
 @pytest.fixture()
 def campaign_1() -> Campaign:
     return Campaign(name=CampaignName("fishing"), organization_id=uuid4(), template_id=uuid4(),
-                    landing_page_id=uuid4(), status=CampaignStatus.Draft)
+                    landing_page_id=uuid4(), status=CampaignStatus.Draft, template_version=1,
+                    _template_subject="Test subject", _template_content="Test content")
 
 
 def test_edit_status_campaign(campaign_1):
@@ -74,4 +75,5 @@ def test_edit_wring_status(campaign_1):
 def test_campaign_cannot_be_created_with_invalid_initial_status():
     with pytest.raises(CampaignInitError):
         Campaign(name=CampaignName("TEST"), organization_id=uuid4(), template_id=uuid4(),
-                 landing_page_id=uuid4(), status=CampaignStatus.Archived)
+                 landing_page_id=uuid4(), status=CampaignStatus.Archived, template_version=1,
+                 _template_content="efefe", _template_subject="ervrf")

@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 
 from social_engineering_simulator.application.services.exception_create_organization import DuplicateDepartmentsError
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
+from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotInOrganization, \
+    EmptyTemplateTextError
 from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError, \
     CampaignScheduleError, AddCampaignEmployeeError, DeleteCampaignEmployeeError
 from social_engineering_simulator.domain.organizations.exceptions import (
@@ -81,5 +83,19 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def delete_emp_error(request: Request, exc: DeleteCampaignEmployeeError):
         return JSONResponse(
             status_code=404,
+            content={"detail": str(exc)}
+        )
+
+    @app.exception_handler(TemplateNotInOrganization)
+    async def template_not_in_org(request: Request, exc: TemplateNotInOrganization):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": str(exc)}
+        )
+
+    @app.exception_handler(EmptyTemplateTextError)
+    async def empty_text(request: Request, exc: EmptyTemplateTextError):
+        return JSONResponse(
+            status_code=400,
             content={"detail": str(exc)}
         )

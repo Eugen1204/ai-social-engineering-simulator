@@ -64,3 +64,26 @@ class AddTemplateRequest(BaseModel):
     name: str
     subject: str
     content: str
+
+
+class UpdateTemplateHttpRequest(BaseModel):
+    content: str | None = None
+    subject: str | None = None
+
+
+class UpdateTemplateHttpResponse(BaseModel):
+    organization_id: UUID
+    template_id: UUID
+    content: str
+    subject: str
+    version: int
+
+
+class TemplateResponse(BaseModel):
+    id: UUID
+    organization_id: UUID
+    name: str
+    subject: str
+    content: str
+    version: int
+    created_at: datetime
