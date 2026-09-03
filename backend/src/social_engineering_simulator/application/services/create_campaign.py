@@ -7,14 +7,10 @@ from social_engineering_simulator.domain.email_template.repository import Templa
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
-from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
-from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
-from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
-    OrganizationRepoInMemory
 
 
 class CreateCampaignService:
@@ -38,11 +34,15 @@ class CreateCampaignService:
 
         camp = Campaign(name=name, organization_id=org_id,
                         template_id=template.id, landing_page_id=land_page_id,
-                        status=CampaignStatus.Draft)
+                        status=CampaignStatus.Draft,
+                        template_version=template.version,
+                        _template_subject=template.subject.value,
+                        _template_content=template.content.value)
 
         self.repo_campaign.save(camp)
 
-        return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value)
+        return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value,
+                                template_version=camp.template_version)
 
 
 class GetCampaignService:
@@ -56,7 +56,8 @@ class GetCampaignService:
 
         return CampaignResponse(id=campaign.id,
                                 name=campaign.name.value,
-                                status=campaign.status.value)
+                                status=campaign.status.value,
+                                template_version=campaign.template_version)
 
 
 class StartCampaignService:
@@ -74,7 +75,8 @@ class StartCampaignService:
 
         return CampaignResponse(id=campaign.id,
                                 name=campaign.name.value,
-                                status=campaign.status.value)
+                                status=campaign.status.value,
+                                template_version=campaign.template_version)
 
 
 class FinishCampaignService:
@@ -90,7 +92,8 @@ class FinishCampaignService:
         campaign.finish()
         self.repo.save(campaign)
 
-        return CampaignResponse(id=campaign.id, name=campaign.name.value, status=campaign.status.value)
+        return CampaignResponse(id=campaign.id, name=campaign.name.value, status=campaign.status.value,
+                                template_version=campaign.template_version)
 
 
 class CancelCampaignService:
@@ -106,7 +109,8 @@ class CancelCampaignService:
         campaign.cancel()
         self.repo.save(campaign)
 
-        return CampaignResponse(id=campaign.id, name=campaign.name.value, status=campaign.status.value)
+        return CampaignResponse(id=campaign.id, name=campaign.name.value, status=campaign.status.value,
+                                template_version=campaign.template_version)
 
 
 class ScheduleCampaignService:
@@ -122,7 +126,5 @@ class ScheduleCampaignService:
         camp.schedule(start_time=request.start_time)
         self.repo_campaign.save(camp)
 
-        return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value)
-
-
-
+        return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value,
+                                template_version=camp.template_version)

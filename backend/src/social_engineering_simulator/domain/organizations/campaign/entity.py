@@ -13,11 +13,30 @@ from social_engineering_simulator.domain.organizations.department.employee.entit
 
 @dataclass
 class Campaign:
+    """
+        Phishing simulation campaign.
+
+     The campaign stores a snapshot of the template data at the time of creation.
+        After the campaign is created, changes to the template DO NOT affect the campaign.
+
+     Fields related to the template:
+        - template_id: a link to the original template (for information and analytics purposes only).
+          NOT used to retrieve content when sending emails.
+        - template_version: the version of the template at the time the campaign was created.
+        - template_subject: a snapshot of the email subject at the time the campaign was created.
+        - template_content: a snapshot of the email body at the time the campaign was created.
+
+     When sending emails, use ONLY the fields from the snapshot:
+        template_subject, template_content.
+    """
     name: CampaignName
     organization_id: UUID
     template_id: UUID
     landing_page_id: UUID
     status: CampaignStatus
+    template_version: int
+    _template_subject: str
+    _template_content: str
     id: UUID = field(default_factory=uuid4)
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     _scheduled_at: datetime | None = field(default=None, init=False)

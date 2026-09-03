@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from starlette.testclient import TestClient
 
@@ -45,4 +47,19 @@ def created_template(client_with_repos, created_organization):
         f"/organizations/{created_organization['id']}/templates",
         json={"name": "Test", "subject": "Hi {{name}}", "content": "Hello {{name}}"}
     )
+    return response.json()
+
+
+@pytest.fixture
+def created_campaign(client_with_repos, created_organization, created_template):
+    client, _, _ = client_with_repos
+    payload = {
+        "name": "Fishing",
+        "organization_id": created_organization['id'],
+        "template_id": created_template['id'],
+        "landing_page_id": str(uuid4())
+    }
+
+    response = client.post("/campaigns/", json=payload)
+
     return response.json()

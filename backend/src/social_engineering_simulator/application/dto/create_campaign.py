@@ -13,9 +13,17 @@ class CreateCampaignRequest:
 
 @dataclass(frozen=True)
 class CampaignResponse:
+    """
+     Response with information about the campaign.
+
+     The template_version field shows the template version that was
+     fixed when the campaign was created. It does NOT change when the template is updated.
+
+    """
     id: UUID
     name: str
     status: str
+    template_version: int
 
 
 @dataclass(frozen=True)

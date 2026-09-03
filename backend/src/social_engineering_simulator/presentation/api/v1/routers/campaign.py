@@ -8,10 +8,10 @@ from social_engineering_simulator.application.dto.create_campaign import CreateC
 from social_engineering_simulator.application.services.add_employee import AddCampaignEmployeeService, \
     RemoveCampaignEmployeeService
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
-    FinishCampaignService, CancelCampaignService, ScheduleCampaignService
+    FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_campaign_service, \
     start_campaign_service, finish_campaign_service, cancel_campaign_service, schedule_campaign_service, \
-    add_employee_campaign, remove_employee_campaign
+    add_employee_campaign, remove_employee_campaign, get_campaign_service
 from social_engineering_simulator.presentation.api.v1.schemas.campaign import CampaignHttpResponse, \
     CampaignCreateRequest, ScheduleCampaignHttpRequest, EmployeeCampaignRequest
 
@@ -28,7 +28,8 @@ async def create_campaign(dto: CampaignCreateRequest, service=Depends(get_create
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
-                                status=result.status)
+                                status=result.status,
+                                template_version=result.template_version)
 
 
 @router.post("/{campaign_id}/start", response_model=CampaignHttpResponse, status_code=200)
@@ -38,7 +39,8 @@ async def start_campaign(campaign_id: UUID, service=Depends(start_campaign_servi
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
-                                status=result.status)
+                                status=result.status,
+                                template_version=result.template_version)
 
 
 @router.post("/{campaign_id}/finish", response_model=CampaignHttpResponse, status_code=200)
@@ -46,7 +48,8 @@ async def finish_campaign(campaign_id: UUID, service: FinishCampaignService = De
         -> CampaignHttpResponse:
     result = service.execute(campaign_id)
 
-    return CampaignHttpResponse(id=result.id, name=result.name, status=result.status)
+    return CampaignHttpResponse(id=result.id, name=result.name, status=result.status,
+                                template_version=result.template_version)
 
 
 @router.post("/{campaign_id}/cancel", response_model=CampaignHttpResponse, status_code=200)
@@ -56,7 +59,8 @@ async def cancel_campaign(campaign_id: UUID, service: CancelCampaignService = De
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
-                                status=result.status)
+                                status=result.status,
+                                template_version=result.template_version)
 
 
 @router.post("/{campaign_id}/schedule", response_model=CampaignHttpResponse, status_code=200)
@@ -68,7 +72,8 @@ async def schedule_campaign(campaign_id: UUID, data: ScheduleCampaignHttpRequest
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
-                                status=result.status)
+                                status=result.status,
+                                template_version=result.template_version)
 
 
 @router.post("/{campaign_id}/employees/{employee_id}", response_model=EmployeeCampaignRequest, status_code=201)
@@ -86,4 +91,15 @@ async def remove_employee(campaign_id: UUID, employee_id: UUID,
                           service: RemoveCampaignEmployeeService = Depends(remove_employee_campaign)) -> None:
     request = RemoveCampaignEmployeeRequest(employee_id=employee_id, campaign_id=campaign_id)
     service.execute(request)
+
+
+@router.get("/{campaign_id}", status_code=200, response_model=CampaignHttpResponse)
+async def get_campaign(campaign_id: UUID,
+                       service: GetCampaignService = Depends(get_campaign_service)) -> CampaignHttpResponse:
+    result = service.execute(campaign_id=campaign_id)
+
+    return CampaignHttpResponse(id=result.id,
+                                name=result.name,
+                                status=result.status,
+                                template_version=result.template_version)
 

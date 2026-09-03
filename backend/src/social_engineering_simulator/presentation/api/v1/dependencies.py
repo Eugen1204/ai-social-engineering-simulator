@@ -5,7 +5,7 @@ from fastapi import Depends
 from social_engineering_simulator.application.services.add_employee import AddCampaignEmployeeService, \
     RemoveCampaignEmployeeService
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
-    StartCampaignService, FinishCampaignService, CancelCampaignService, ScheduleCampaignService
+    StartCampaignService, FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService, \
     GetOrganizationService, AddEmployeeInOrganization, GetEmployeeInOrganization
 from social_engineering_simulator.application.services.create_template import PreviewTemplateService, \
@@ -122,3 +122,7 @@ def update_template_service(repo_template: TemplateRepository = Depends(get_repo
                             repo_org: OrganizationRepository = Depends(
                                 get_organization_repository)) -> UpdateTemplateService:
     return UpdateTemplateService(repo_template=repo_template, repo_org=repo_org)
+
+
+def get_campaign_service(repo_campaign: CampaignRepository = Depends(get_repository_campaign)) -> GetCampaignService:
+    return GetCampaignService(repo=repo_campaign)

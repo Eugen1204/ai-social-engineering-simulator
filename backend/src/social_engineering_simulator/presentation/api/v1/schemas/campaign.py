@@ -8,6 +8,7 @@ class CampaignHttpResponse(BaseModel):
     id: UUID
     name: str
     status: str
+    template_version: int
 
 
 class CampaignCreateRequest(BaseModel):
