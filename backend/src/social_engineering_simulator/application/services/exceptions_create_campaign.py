@@ -8,3 +8,7 @@ class DifferentIdError(Exception):
 
 class CampaignIsNotRunning(Exception):
     pass
+
+
+class CampaignNotInThisOrganizationError(Exception):
+    pass

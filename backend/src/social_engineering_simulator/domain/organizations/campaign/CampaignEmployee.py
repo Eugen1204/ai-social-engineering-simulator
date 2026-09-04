@@ -21,10 +21,10 @@ class CampaignEmployee:
             return False
         return self.campaign_id == other.campaign_id and self.employee_id == other.employee_id
 
-    def mark_send(self) -> None:
+    def mark_send(self, send_at: datetime | None = None) -> None:
         if self._sent_at is not None:
             raise AlreadySentError("the letter has already been sent")
-        self._sent_at = datetime.now(UTC)
+        self._sent_at = send_at if send_at is not None else datetime.now(UTC)
 
     def mark_opened(self) -> None:
         if self._sent_at is None:
@@ -41,3 +41,7 @@ class CampaignEmployee:
         if self._clicked_at is not None:
             raise AlreadyClickedError("the user has already clicked on the link")
         self._clicked_at = datetime.now(UTC)
+
+    @property
+    def sent_at(self) -> datetime | None:
+        return self._sent_at

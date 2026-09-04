@@ -9,8 +9,8 @@ from social_engineering_simulator.domain.organizations.campaign.value_object imp
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
 
 
-def test_campaign_starts_when_time_came(application_campaign):
-    campaign, repo_camp = application_campaign
+def test_campaign_starts_when_time_came(employee_in_campaign):
+    campaign, repo_camp = employee_in_campaign
 
     service = StartScheduledCampaign(repo_camp)
 
@@ -39,6 +39,8 @@ def test_campaign_start_with_the_same_time(application_template, application_org
                     _template_subject=template.subject.value,
                     _template_content=template.content.value)
 
+    camp.assign_employee(org.employees[0])
+
     scheduled_time = datetime(2027, 9, 3, 10, 0, tzinfo=timezone.utc)
     camp.schedule(scheduled_time)
     repo_camp.save(camp)
@@ -63,6 +65,8 @@ def test_campaign_not_started_before_scheduled_time(application_template, applic
                     template_version=template.version,
                     _template_subject=template.subject.value,
                     _template_content=template.content.value)
+
+    camp.assign_employee(org.employees[0])
 
     scheduled_time = datetime(2027, 9, 3, 10, 0, tzinfo=timezone.utc)
     camp.schedule(scheduled_time)
@@ -89,6 +93,8 @@ def test_other_status_not_selected(application_template, application_organizatio
                     _template_subject=template.subject.value,
                     _template_content=template.content.value)
 
+    camp.assign_employee(org.employees[0])
+
     service = StartScheduledCampaign(repo_camp)
 
     started = service.execute(datetime.now(timezone.utc) + timedelta(hours=2))
@@ -107,28 +113,15 @@ def test_other_status_not_selected(application_template, application_organizatio
     assert len(started) == 0
 
 
-def test_with_3_campaigns_where_2_ready_to_started(application_template, application_organization):
-    def make_draft_campaigns(org_id, test_template, **kwargs):
-        defaults = {"name": CampaignName("Test Campaign"),
-                    "organization_id": org_id,
-                    "template_id": test_template.id,
-                    "landing_page_id": uuid4(),
-                    "status": CampaignStatus.Draft,
-                    "template_version": test_template.version,
-                    "_template_subject": test_template.subject.value,
-                    "_template_content": test_template.content.value,
-                    }
-
-        defaults.update(kwargs)
-
-        return Campaign(**defaults)
+def test_with_3_campaigns_where_2_ready_to_started(application_template, application_organization,
+                                                   make_draft_campaigns):
 
     repo_camp = CampaignRepoInMemory()
     template, _ = application_template
     org, _ = application_organization
-    camp_1 = make_draft_campaigns(org.id, template, name=CampaignName("HR Fishing 1"))
-    camp_2 = make_draft_campaigns(org.id, template, name=CampaignName("HR Fishing 2"))
-    camp_3 = make_draft_campaigns(org.id, template, name=CampaignName("HR Fishing 3"))
+    camp_1 = make_draft_campaigns(name=CampaignName("HR Fishing 1"))
+    camp_2 = make_draft_campaigns(name=CampaignName("HR Fishing 2"))
+    camp_3 = make_draft_campaigns(name=CampaignName("HR Fishing 3"))
 
     datetime_now = datetime(2027, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
 

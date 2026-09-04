@@ -30,7 +30,7 @@ def client():
 
 
 @pytest.fixture()
-def template_with_org(client):
+def template_with_organization(client):
     payload = {
         "name": "TestOrg3",
         "industry": "IT Company",
@@ -49,10 +49,19 @@ def template_with_org(client):
 
     response = client.post(f"/organizations/{data_org['id']}/templates", json=payload)
 
-    return response.json()
+    emp = client.post(f"/organizations/{data_org['id']}/employees", json={
+        "name": "SDVSV dv",
+        "email": "dcvdv@cw.com",
+        "dep_name": "HR"
+    })
+
+    assert emp.status_code == 201
+
+    return response.json(), emp.json()['id']
 
 
-def test_create_campaign(client, template_with_org):
+def test_create_campaign(client, template_with_organization):
+    template_with_org, emp_id = template_with_organization
 
     print(template_with_org)
     payload = {
@@ -67,6 +76,8 @@ def test_create_campaign(client, template_with_org):
     data = response.json()
     repo = app.dependency_overrides[get_repository_campaign]()
     assert repo.exists(UUID(data["id"]))
+    client.post(f"/campaigns/{data['id']}/employees/{emp_id}")
+
     response_start = client.post(f"/campaigns/{data['id']}/start")
     assert response_start.status_code == 200
     data_start = response_start.json()
@@ -83,7 +94,8 @@ def test_create_campaign(client, template_with_org):
     assert response_finished.status_code == 409
 
 
-def test_schedule_campaign(client, template_with_org):
+def test_schedule_campaign(client, template_with_organization):
+    template_with_org, emp_id = template_with_organization
 
     payload = {
         "name": "TestCampaign",
@@ -115,7 +127,9 @@ def test_schedule_campaign(client, template_with_org):
     assert response_schedule.json()['status'] == CampaignStatus.Scheduled.value
 
 
-def test_add_employee(client, template_with_org):
+def test_add_employee(client, template_with_organization):
+    template_with_org, emp_id = template_with_organization
+
     payload = {
         "name": "TestCampaign",
         "organization_id": f"{template_with_org['organization_id']}",
