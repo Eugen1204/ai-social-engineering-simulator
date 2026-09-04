@@ -47,7 +47,7 @@ class Campaign:
     workflow: CampaignWorkflow = field(default_factory=CampaignWorkflow)
 
     def __post_init__(self):
-        allowed_initial_status = {CampaignStatus.Draft, CampaignStatus.Scheduled}
+        allowed_initial_status = {CampaignStatus.Draft}
         if self.status not in allowed_initial_status:
             raise CampaignInitError("invalid status for campaign initialization")
 
@@ -57,11 +57,13 @@ class Campaign:
     def return_to_draft(self) -> None:
         self._apply_action("draft")
 
-    def start(self) -> None:
+    def start(self, started_at: datetime | None = None) -> None:
         # if not self._employees:
         #     raise CampaignValidationError("cannot start a campaign without employees.")
         self._apply_action("start")
-        self._started_at = datetime.now(UTC)
+        if started_at is None:
+            started_at = datetime.now(UTC)
+        self._started_at = started_at
 
     def finish(self) -> None:
         self._apply_action("finish")
@@ -93,3 +95,7 @@ class Campaign:
         if emp_id not in self._employees:
             raise DeleteCampaignEmployeeError("couldn't find an employee")
         del self._employees[emp_id]
+
+    @property
+    def schedule_time(self) -> datetime:
+        return self._scheduled_at

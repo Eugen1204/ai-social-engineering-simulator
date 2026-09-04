@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -17,3 +18,5 @@ class CampaignRepository(Protocol):
     def exists(self, campaign_id: UUID) -> bool:
         ...
 
+    def get_campaigns_ready_to_start(self, datetime_now: datetime) -> list[Campaign]:
+        ...
