@@ -58,8 +58,8 @@ class Campaign:
         self._apply_action("draft")
 
     def start(self, started_at: datetime | None = None) -> None:
-        # if not self._employees:
-        #     raise CampaignValidationError("cannot start a campaign without employees.")
+        if not self._employees:
+            raise CampaignValidationError("cannot start a campaign without employees.")
         self._apply_action("start")
         if started_at is None:
             started_at = datetime.now(UTC)
@@ -99,3 +99,8 @@ class Campaign:
     @property
     def schedule_time(self) -> datetime:
         return self._scheduled_at
+
+    @property
+    def employees(self) -> dict[UUID, CampaignEmployee]:
+        return self._employees
+

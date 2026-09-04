@@ -3,7 +3,6 @@ from uuid import uuid4
 
 import pytest
 
-from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
 from social_engineering_simulator.domain.organizations.campaign.exceptions import InvalidStateTransitionError, \
     CampaignInitError, CampaignScheduleError
@@ -11,10 +10,14 @@ from social_engineering_simulator.domain.organizations.campaign.value_object imp
 
 
 @pytest.fixture()
-def campaign_1() -> Campaign:
-    return Campaign(name=CampaignName("fishing"), organization_id=uuid4(), template_id=uuid4(),
+def campaign_1(organization_with_employee) -> Campaign:
+    camp = Campaign(name=CampaignName("fishing"), organization_id=uuid4(), template_id=uuid4(),
                     landing_page_id=uuid4(), status=CampaignStatus.Draft, template_version=1,
                     _template_subject="Test subject", _template_content="Test content")
+
+    camp.assign_employee(organization_with_employee.employees[0])
+
+    return camp
 
 
 def test_edit_status_campaign(campaign_1):
@@ -45,7 +48,7 @@ def test_edit_status_campaign(campaign_1):
     assert campaign_1.status == CampaignStatus.Archived
 
 
-def test_edit_wring_status(campaign_1):
+def test_edit_wrong_status(campaign_1):
     with pytest.raises(InvalidStateTransitionError):
         campaign_1.finish()
 
