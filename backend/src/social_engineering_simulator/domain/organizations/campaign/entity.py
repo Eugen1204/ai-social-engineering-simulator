@@ -99,3 +99,8 @@ class Campaign:
     @property
     def schedule_time(self) -> datetime:
         return self._scheduled_at
+
+    @property
+    def employees(self) -> dict[UUID, CampaignEmployee]:
+        return self._employees
+

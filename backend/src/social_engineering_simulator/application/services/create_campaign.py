@@ -2,7 +2,8 @@ from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest
-from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError
+from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
+    CampaignIsNotRunning
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
@@ -128,3 +129,29 @@ class ScheduleCampaignService:
 
         return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value,
                                 template_version=camp.template_version)
+
+
+class ExecuteCampaignService:
+    def __init__(self, repo_campaign: CampaignRepository, repo_org: OrganizationRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+
+    def execute(self, campaign_id: UUID):
+        campaign = self.repo_campaign.get_by_id(campaign_id)
+        if campaign is None:
+            raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
+        if campaign.status != CampaignStatus.Running:
+            raise CampaignIsNotRunning(f"Campaign {campaign.name} is not running")
+
+        organization = self.repo_org.get_by_id(campaign.organization_id)
+
+        campaign_employees = campaign.employees
+
+        for emp in campaign_employees.values():
+            emp.mark_send()
+
+        self.repo_campaign.save(campaign)
+
+
+
+

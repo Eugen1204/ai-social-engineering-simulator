@@ -4,3 +4,7 @@ class CampaignNotFoundError(Exception):
 
 class DifferentIdError(Exception):
     pass
+
+
+class CampaignIsNotRunning(Exception):
+    pass
