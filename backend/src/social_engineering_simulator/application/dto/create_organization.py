@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 
@@ -31,6 +32,16 @@ class EmployeeResponse:
     name: str
     email: str
     org_id: UUID
+
+
+@dataclass(frozen=True)
+class ExecuteCampaignResponse:
+    campaign_id: UUID
+    total_employees: int
+    sent_count: int
+    skipped_count: int
+    execute_at: datetime
+
 
 
 
