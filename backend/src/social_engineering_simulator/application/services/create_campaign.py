@@ -3,6 +3,7 @@ from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest
+from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
     CampaignIsNotRunning, CampaignNotInThisOrganizationError
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
@@ -142,7 +143,8 @@ class ExecuteCampaignService:
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
 
-    def execute(self, campaign_id: UUID, organization_id: UUID, now: datetime | None = None):
+    def execute(self, campaign_id: UUID, organization_id: UUID,
+                now: datetime | None = None) -> ExecuteCampaignResponse:
         campaign = self.repo_campaign.get_by_id(campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
@@ -156,22 +158,18 @@ class ExecuteCampaignService:
 
         if now is None:
             now = datetime.now(UTC)
-        emp_list = []
         sent_count = 0
         skipped_count = 0
         for emp in campaign.employees.values():
-            try:
-                emp.mark_send(send_at=now)
-                emp_list.append(emp)
-                sent_count += 1
-            except AlreadySentError:
+            if emp.sent_at is not None:
                 skipped_count += 1
+                continue
+            emp.mark_send(send_at=now)
+            sent_count += 1
         self.repo_campaign.save(campaign)
 
-        if skipped_count > 0:
-            logger.warning(
-                f"Campaign {campaign_id}: {sent_count} sent, "
-                f"{skipped_count} already sent"
-            )
-
-        return emp_list
+        return ExecuteCampaignResponse(campaign_id=campaign.id,
+                                       total_employees=len(campaign.employees),
+                                       sent_count=sent_count,
+                                       skipped_count=skipped_count,
+                                       execute_at=now)

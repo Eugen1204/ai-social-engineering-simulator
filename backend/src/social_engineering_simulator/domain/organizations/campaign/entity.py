@@ -8,7 +8,6 @@ from social_engineering_simulator.domain.organizations.campaign.exceptions impor
     CampaignValidationError, CampaignScheduleError
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
 from social_engineering_simulator.domain.organizations.campaign.workflow import CampaignWorkflow
-from social_engineering_simulator.domain.organizations.department.employee.entity import Employee
 
 
 @dataclass

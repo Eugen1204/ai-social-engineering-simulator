@@ -3,6 +3,7 @@ from datetime import datetime
 import pytest
 
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService
+from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignIsNotRunning
 from social_engineering_simulator.domain.organizations.campaign.exceptions import CampaignValidationError, \
     AlreadySentError
 
@@ -17,12 +18,9 @@ def test_running_campaign(employee_in_campaign, application_organization, make_d
 
     result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10))
 
-    assert len(result) == 3
+    assert result.sent_count == 3
 
-    assert result[0].sent_at == datetime(2027, 1, 1, 10, 10)
-
-    with pytest.raises(AlreadySentError):
-        service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10))
+    assert result.execute_at == datetime(2027, 1, 1, 10, 10)
 
     empty_camp = make_draft_campaigns(with_employee=False)
 
@@ -30,6 +28,44 @@ def test_running_campaign(employee_in_campaign, application_organization, make_d
         empty_camp.start()
 
 
+def test_execute_campaign_with_3_skipped(employee_in_campaign, application_organization, make_draft_campaigns):
+    org, repo_org = application_organization
+    camp, repo_camp = employee_in_campaign
+
+    camp.start(started_at=datetime(2027, 1, 1, 10, 10))
+
+    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org)
+
+    service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10))
+
+    result_with_3_skipped_count = service.execute(campaign_id=camp.id, organization_id=org.id,
+                                                  now=datetime(2027, 1, 1, 11, 10))
+
+    assert result_with_3_skipped_count.skipped_count == 3
 
 
+def test_execute_campaign_partial_send(employee_in_campaign, application_organization, make_draft_campaigns):
+    org, repo_org = application_organization
+    camp, repo_camp = employee_in_campaign
 
+    camp.start(started_at=datetime(2027, 1, 1, 10, 10))
+
+    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org)
+
+    # I hardcoded one participant while accessing a private field, what can I do, I’m just learning
+    camp.employees[list(camp.employees.keys())[0]]._sent_at = datetime(2026, 1, 1, 10, 10)
+
+    result_with_1_skipped_count = service.execute(campaign_id=camp.id, organization_id=org.id,
+                                                  now=datetime(2027, 1, 1, 10, 10))
+
+    assert result_with_1_skipped_count.skipped_count == 1
+    assert result_with_1_skipped_count.sent_count == 2
+    assert result_with_1_skipped_count.execute_at == datetime(2027, 1, 1, 10, 10)
+
+    assert camp.employees[list(camp.employees.keys())[0]]._sent_at == datetime(2026, 1, 1, 10, 10)
+
+    camp.finish()
+
+    with pytest.raises(CampaignIsNotRunning):
+        service.execute(campaign_id=camp.id, organization_id=org.id,
+                        now=datetime(2027, 1, 1, 10, 10))
