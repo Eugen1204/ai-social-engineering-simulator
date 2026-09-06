@@ -12,7 +12,7 @@ class CampaignEmployee:
     employee_id: UUID
     _sent_at: datetime | None = field(default=None, init=False)
     _opened_at: None | datetime = field(default=None, init=False)
-    _clicked_at: None | datetime = field(default=None, init=False)
+    _clicked_at: list[datetime] = field(default_factory=list, init=False)
     _submitted_credentials: list | None = field(default=None, init=False)
     _risk_score: int = field(default=0, init=False)
 
@@ -33,14 +33,10 @@ class CampaignEmployee:
             raise AlreadyOpenedError("the letter has already been opened")
         self._opened_at = mark_opened_at if mark_opened_at is not None else datetime.now(UTC)
 
-    def mark_clicked(self) -> None:
+    def mark_clicked(self, mark_clicked_at: datetime | None = None) -> None:
         if self._sent_at is None:
             raise NotSentYetError("you cannot open a letter that has not yet been sent")
-        if self._opened_at is None:
-            raise NotOpenedYetError("You cannot click on a link if the email has not been opened")
-        if self._clicked_at is not None:
-            raise AlreadyClickedError("the user has already clicked on the link")
-        self._clicked_at = datetime.now(UTC)
+        self._clicked_at.append(mark_clicked_at if mark_clicked_at is not None else datetime.now(UTC))
 
     @property
     def sent_at(self) -> datetime | None:
@@ -49,3 +45,8 @@ class CampaignEmployee:
     @property
     def opened_at(self) -> datetime | None:
         return self._opened_at
+
+    @property
+    def clicked_at(self) -> tuple:
+        return tuple(self._clicked_at)
+

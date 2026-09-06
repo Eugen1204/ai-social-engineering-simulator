@@ -68,3 +68,7 @@ class CampaignValidationError(Exception):
 
 class CampaignScheduleError(Exception):
     pass
+
+
+class EmployeeNotFoundInCampaign(Exception):
+    pass

@@ -47,4 +47,18 @@ class OpenTemplateCampaignResponse:
     opened_at: datetime
 
 
+@dataclass(frozen=True)
+class ClickCampaignEmployeeRequest:
+    campaign_id: UUID
+    organization_id: UUID
+    employee_id: UUID
+    click_at: datetime
+
+
+@dataclass(frozen=True)
+class ClickCampaignEmployeeResponse:
+    campaign_id: UUID
+    employee_id: UUID
+    clicked_at: datetime
+
 

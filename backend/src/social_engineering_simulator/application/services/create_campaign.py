@@ -2,7 +2,8 @@ from datetime import datetime, UTC
 from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
-    ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse
+    ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
+    ClickCampaignEmployeeResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
@@ -211,3 +212,37 @@ class OpenCampaignEmployeeService:
         return OpenTemplateCampaignResponse(campaign_id=camp.id,
                                             employee_id=emp.employee_id,
                                             opened_at=open_at)
+
+
+class ClickCampaignEmployeeService:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+
+    def execute(self, request: ClickCampaignEmployeeRequest) -> ClickCampaignEmployeeResponse:
+        org = self.repo_org.get_by_id(request.organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {request.organization_id} not found")
+        camp = self.repo_campaign.get_by_id(request.campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status != CampaignStatus.Running:
+            raise CampaignIsNotRunningError(f"Campaign {camp.name} is not running")
+
+        click_at = request.click_at
+
+        emp = camp.employees.get(request.employee_id)
+        if emp is None:
+            raise EmployeeNotInCampaignError(f"Employee with {request.employee_id} not in this campaign")
+
+        emp.mark_clicked(mark_clicked_at=click_at)
+
+        self.repo_campaign.save(camp)
+
+        return ClickCampaignEmployeeResponse(campaign_id=camp.id,
+                                             employee_id=emp.employee_id,
+                                             clicked_at=click_at)
