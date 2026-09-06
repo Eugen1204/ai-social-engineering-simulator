@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
 from uuid import UUID
 
 
@@ -31,6 +33,30 @@ class EmployeeResponse:
     name: str
     email: str
     org_id: UUID
+
+
+class ExecutionStatus(Enum):
+    SENT = "SENT"
+    SKIPPED = "SKIPPED"
+
+
+@dataclass(frozen=True)
+class CampaignEmployeeExecutionResult:
+    employee_id: UUID
+    status: ExecutionStatus
+
+
+@dataclass(frozen=True)
+class ExecuteCampaignResponse:
+    campaign_id: UUID
+    total_employees: int
+    sent_count: int
+    skipped_count: int
+    executed_at: datetime
+    employees: list[CampaignEmployeeExecutionResult]
+
+
+
 
 
 
