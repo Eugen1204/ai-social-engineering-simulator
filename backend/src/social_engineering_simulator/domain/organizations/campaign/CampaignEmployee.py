@@ -26,12 +26,12 @@ class CampaignEmployee:
             raise AlreadySentError("the letter has already been sent")
         self._sent_at = send_at if send_at is not None else datetime.now(UTC)
 
-    def mark_opened(self) -> None:
+    def mark_opened(self, mark_opened_at: datetime | None = None) -> None:
         if self._sent_at is None:
             raise NotSentYetError("you cannot open a letter that has not yet been sent")
         if self._opened_at is not None:
             raise AlreadyOpenedError("the letter has already been opened")
-        self._opened_at = datetime.now(UTC)
+        self._opened_at = mark_opened_at if mark_opened_at is not None else datetime.now(UTC)
 
     def mark_clicked(self) -> None:
         if self._sent_at is None:
@@ -45,3 +45,7 @@ class CampaignEmployee:
     @property
     def sent_at(self) -> datetime | None:
         return self._sent_at
+
+    @property
+    def opened_at(self) -> datetime | None:
+        return self._opened_at

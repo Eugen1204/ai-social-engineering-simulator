@@ -2,16 +2,15 @@ from datetime import datetime, UTC
 from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
-    ScheduleCampaignRequest
+    ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
-    CampaignIsNotRunning, CampaignNotInThisOrganizationError
+    CampaignIsNotRunningError, CampaignNotInThisOrganizationError, EmployeeNotInCampaignError
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
-from social_engineering_simulator.domain.organizations.campaign.exceptions import AlreadySentError
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
@@ -155,7 +154,7 @@ class ExecuteCampaignService:
         if org.id != campaign.organization_id:
             raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
         if campaign.status != CampaignStatus.Running:
-            raise CampaignIsNotRunning(f"Campaign {campaign.name} is not running")
+            raise CampaignIsNotRunningError(f"Campaign {campaign.name} is not running")
 
         if now is None:
             now = datetime.now(UTC)
@@ -180,3 +179,35 @@ class ExecuteCampaignService:
                                        skipped_count=skipped_count,
                                        executed_at=now,
                                        employees=employees_lst)
+
+
+class OpenCampaignEmployeeService:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+
+    def execute(self, request: OpenTemplateCampaignRequest) -> OpenTemplateCampaignResponse:
+        org = self.repo_org.get_by_id(request.organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {request.organization_id} not found")
+        camp = self.repo_campaign.get_by_id(request.campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status != CampaignStatus.Running:
+            raise CampaignIsNotRunningError(f"Campaign {camp.name} is not running")
+        if request.employee_id not in camp.employees:
+            raise EmployeeNotInCampaignError(f"Employee with {request.employee_id} not in this campaign")
+        open_at = request.open_at
+
+        emp = camp.employees.get(request.employee_id)
+        emp.mark_opened(mark_opened_at=open_at)
+
+        self.repo_campaign.save(camp)
+
+        return OpenTemplateCampaignResponse(campaign_id=camp.id,
+                                            employee_id=emp.employee_id,
+                                            opened_at=open_at)
