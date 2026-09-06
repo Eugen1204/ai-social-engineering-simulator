@@ -3,7 +3,8 @@ from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest
-from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse
+from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
+    CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
     CampaignIsNotRunning, CampaignNotInThisOrganizationError
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
@@ -160,11 +161,16 @@ class ExecuteCampaignService:
             now = datetime.now(UTC)
         sent_count = 0
         skipped_count = 0
+        employees_lst = []
         for emp in campaign.employees.values():
             if emp.sent_at is not None:
                 skipped_count += 1
+                employees_lst.append(CampaignEmployeeExecutionResult(employee_id=emp.employee_id,
+                                                                     status=ExecutionStatus.SKIPPED))
                 continue
             emp.mark_send(send_at=now)
+            employees_lst.append(CampaignEmployeeExecutionResult(employee_id=emp.employee_id,
+                                                                 status=ExecutionStatus.SENT))
             sent_count += 1
         self.repo_campaign.save(campaign)
 
@@ -172,4 +178,5 @@ class ExecuteCampaignService:
                                        total_employees=len(campaign.employees),
                                        sent_count=sent_count,
                                        skipped_count=skipped_count,
-                                       execute_at=now)
+                                       executed_at=now,
+                                       employees=employees_lst)
