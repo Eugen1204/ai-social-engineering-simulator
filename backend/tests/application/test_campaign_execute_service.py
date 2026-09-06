@@ -4,7 +4,8 @@ import pytest
 
 from social_engineering_simulator.application.dto.create_organization import ExecutionStatus
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService
-from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignIsNotRunning
+from social_engineering_simulator.application.services.exceptions_create_campaign import  \
+    CampaignIsNotRunningError
 from social_engineering_simulator.domain.organizations.campaign.exceptions import CampaignValidationError
 
 
@@ -80,6 +81,6 @@ def test_execute_campaign_partial_send(employee_in_campaign, application_organiz
 
     camp.finish()
 
-    with pytest.raises(CampaignIsNotRunning):
+    with pytest.raises(CampaignIsNotRunningError):
         service.execute(campaign_id=camp.id, organization_id=org.id,
                         now=datetime(2027, 1, 1, 10, 10))

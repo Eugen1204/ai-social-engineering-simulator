@@ -31,3 +31,20 @@ class ScheduleCampaignRequest:
     campaign_id: UUID
     start_time: datetime
 
+
+@dataclass(frozen=True)
+class OpenTemplateCampaignRequest:
+    campaign_id: UUID
+    organization_id: UUID
+    employee_id: UUID
+    open_at: datetime
+
+
+@dataclass(frozen=True)
+class OpenTemplateCampaignResponse:
+    campaign_id: UUID
+    employee_id: UUID
+    opened_at: datetime
+
+
+
