@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 from social_engineering_simulator.domain.organizations.campaign.CampaignEmployee import CampaignEmployee
 from social_engineering_simulator.domain.organizations.campaign.exceptions import \
     CampaignInitError, AddCampaignEmployeeError, DeleteCampaignEmployeeError, \
-    CampaignValidationError, CampaignScheduleError
+    CampaignValidationError, CampaignScheduleError, EmployeeNotFoundInCampaign
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
 from social_engineering_simulator.domain.organizations.campaign.workflow import CampaignWorkflow
 
@@ -103,3 +103,7 @@ class Campaign:
     def employees(self) -> dict[UUID, CampaignEmployee]:
         return self._employees
 
+    def get_employee(self, employee_id: UUID):
+        if self._employees.get(employee_id) is None:
+            raise EmployeeNotFoundInCampaign(f"Employee with {employee_id} don't found in this campaign")
+        return self._employees.get(employee_id)
