@@ -1,0 +1,121 @@
+from datetime import datetime, UTC
+from uuid import uuid4
+
+import pytest
+
+from social_engineering_simulator.application.dto.create_campaign import ClickCampaignEmployeeRequest, \
+    EmployeeResultRequest, OpenTemplateCampaignRequest
+from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService, \
+    ClickCampaignEmployeeService, GetCampaignEmployeeResultService, OpenCampaignEmployeeService
+from social_engineering_simulator.application.services.exceptions_create_campaign import EmployeeNotInCampaignError, \
+    CampaignNotFoundError, CampaignIsNotRunningError
+from social_engineering_simulator.domain.organizations.campaign.exceptions import EmployeeNotFoundInCampaign
+from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
+
+
+def test_risk_score_campaign(employee_in_campaign, application_organization):
+    org, repo_org = application_organization
+    camp, repo_camp = employee_in_campaign
+
+    camp.start()
+
+    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org)
+
+    result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    assert result.sent_count == 3
+
+    click_at = datetime(2027, 1, 1, 11, 10, tzinfo=UTC)
+
+    employees_with_sent_template = result.employees
+
+    service_click = ClickCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org)
+
+    request_click = ClickCampaignEmployeeRequest(campaign_id=camp.id,
+                                                 organization_id=org.id,
+                                                 employee_id=employees_with_sent_template[0].employee_id,
+                                                 click_at=click_at)
+
+    result_click = service_click.execute(request=request_click)
+
+    assert result_click.clicked_at == click_at
+
+    assert camp.employees[employees_with_sent_template[0].employee_id].clicked_at[0] \
+           == datetime(2027, 1, 1, 11, 10, tzinfo=UTC)
+
+    request_2 = ClickCampaignEmployeeRequest(campaign_id=camp.id,
+                                             organization_id=org.id,
+                                             employee_id=employees_with_sent_template[0].employee_id,
+                                             click_at=datetime(2027, 1, 1, 12, 10, tzinfo=UTC))
+
+    service_click.execute(request=request_2)
+
+    assert camp.employees[employees_with_sent_template[0].employee_id].clicked_at[1] \
+           == datetime(2027, 1, 1, 12, 10, tzinfo=UTC)
+
+    service = GetCampaignEmployeeResultService(repo_campaign=repo_camp, repo_org=repo_org)
+
+    emp = camp.get_employee(employees_with_sent_template[0].employee_id)
+
+    request = EmployeeResultRequest(organization_id=org.id,
+                                    campaign_id=camp.id,
+                                    employee_id=emp.employee_id)
+
+    result = service.execute(request)
+
+    # 0.1 + 0.5 + 0.05 (sent_score + first_click_score + additional_clicks_score)
+    assert result.risk_score == 0.65
+
+    service_2 = OpenCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org)
+
+    request_2 = OpenTemplateCampaignRequest(campaign_id=camp.id,
+                                            organization_id=org.id,
+                                            employee_id=emp.employee_id,
+                                            open_at=datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
+
+    result_2 = service_2.execute(request_2)
+
+    assert result_2.opened_at == datetime(2026, 10, 10, 10, 10, tzinfo=UTC)
+
+    result = service.execute(request)
+
+    assert result.risk_score == pytest.approx(0.95)
+
+    service_click.execute(request=request_click)
+
+    result = service.execute(request)
+
+    assert result.risk_score == 1.0
+
+    service_click.execute(request=request_click)
+
+    result = service.execute(request)
+
+    assert result.risk_score == 1.0
+
+    request = EmployeeResultRequest(organization_id=org.id,
+                                    campaign_id=camp.id,
+                                    employee_id=uuid4())
+
+    with pytest.raises(EmployeeNotFoundInCampaign):
+        service.execute(request)
+
+    request = EmployeeResultRequest(organization_id=uuid4(),
+                                    campaign_id=camp.id,
+                                    employee_id=emp.employee_id)
+
+    with pytest.raises(OrganizationNotFoundError):
+        service.execute(request)
+
+    request = EmployeeResultRequest(organization_id=org.id,
+                                    campaign_id=uuid4(),
+                                    employee_id=emp.employee_id)
+
+    with pytest.raises(CampaignNotFoundError):
+        service.execute(request)
+
+
+
+
+
+

@@ -25,3 +25,7 @@ class TemplateWasNotSentError(Exception):
 class TemplateAlreadyOpenedError(Exception):
     pass
 
+
+class CampaignIsDraftStatusError(Exception):
+    pass
+

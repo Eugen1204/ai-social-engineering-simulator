@@ -3,11 +3,12 @@ from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
-    ClickCampaignEmployeeResponse
+    ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
-    CampaignIsNotRunningError, CampaignNotInThisOrganizationError, EmployeeNotInCampaignError
+    CampaignIsNotRunningError, CampaignNotInThisOrganizationError, EmployeeNotInCampaignError, \
+    CampaignIsDraftStatusError
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
@@ -246,3 +247,35 @@ class ClickCampaignEmployeeService:
         return ClickCampaignEmployeeResponse(campaign_id=camp.id,
                                              employee_id=emp.employee_id,
                                              clicked_at=click_at)
+
+
+class GetCampaignEmployeeResultService:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+
+    def execute(self, request: EmployeeResultRequest) -> EmployeeResultResponse:
+        org = self.repo_org.get_by_id(request.organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {request.organization_id} not found")
+        camp = self.repo_campaign.get_by_id(request.campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status == CampaignStatus.Draft:
+            raise CampaignIsDraftStatusError("It is impossible to get results from a campaign that is in draft")
+
+        employee = camp.get_employee(request.employee_id)
+        if employee is None:
+            raise EmployeeNotInCampaignError(f"Employee with id {request.employee_id} doesn't found in campaign")
+
+        return EmployeeResultResponse(campaign_id=employee.campaign_id,
+                                      organization_id=org.id,
+                                      employee_id=employee.employee_id,
+                                      sent_at=employee.sent_at,
+                                      opened_at=employee.opened_at,
+                                      click_count=len(employee.clicked_at),
+                                      risk_score=employee.risk_score)
