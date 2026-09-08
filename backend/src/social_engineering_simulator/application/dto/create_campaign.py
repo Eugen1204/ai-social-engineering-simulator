@@ -78,5 +78,6 @@ class EmployeeResultResponse:
     opened_at: datetime
     click_count: int
     risk_score: float
+    credential_submission_count: int
 
 

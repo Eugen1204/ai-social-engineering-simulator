@@ -278,4 +278,5 @@ class GetCampaignEmployeeResultService:
                                       sent_at=employee.sent_at,
                                       opened_at=employee.opened_at,
                                       click_count=len(employee.clicked_at),
-                                      risk_score=employee.risk_score)
+                                      risk_score=employee.risk_score,
+                                      credential_submission_count=employee.count_submitted_credentials_at)
