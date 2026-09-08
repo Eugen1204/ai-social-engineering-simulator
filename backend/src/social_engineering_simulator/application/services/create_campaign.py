@@ -1,5 +1,5 @@
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
@@ -13,9 +13,12 @@ from social_engineering_simulator.domain.email_template.repository import Templa
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
 from social_engineering_simulator.domain.organizations.campaign.campaign_analytics import CampaignAnalytic
+from social_engineering_simulator.domain.organizations.campaign.campaign_employee_event import CampaignEmployeeEvent
+from social_engineering_simulator.domain.organizations.campaign.campaign_event_repository import CampaignEventRepository
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
-from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
+from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus, \
+    EventType
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
 
@@ -142,9 +145,11 @@ class ScheduleCampaignService:
 
 
 class ExecuteCampaignService:
-    def __init__(self, repo_campaign: CampaignRepository, repo_org: OrganizationRepository):
+    def __init__(self, repo_campaign: CampaignRepository, repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
+        self.repo_event = repo_event
 
     def execute(self, campaign_id: UUID, organization_id: UUID,
                 now: datetime | None = None) -> ExecuteCampaignResponse:
@@ -173,6 +178,13 @@ class ExecuteCampaignService:
             emp.mark_send(send_at=now)
             employees_lst.append(CampaignEmployeeExecutionResult(employee_id=emp.employee_id,
                                                                  status=ExecutionStatus.SENT))
+            event = CampaignEmployeeEvent(event_id=uuid4(),
+                                          campaign_id=campaign.id,
+                                          employee_id=emp.employee_id,
+                                          occurred_at=now,
+                                          event_type=EventType.EmailSent)
+            if self.repo_event:
+                self.repo_event.save(event)
             sent_count += 1
         self.repo_campaign.save(campaign)
 
@@ -186,9 +198,11 @@ class ExecuteCampaignService:
 
 class OpenCampaignEmployeeService:
     def __init__(self, repo_campaign: CampaignRepository,
-                 repo_org: OrganizationRepository):
+                 repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
+        self.repo_event = repo_event
 
     def execute(self, request: OpenTemplateCampaignRequest) -> OpenTemplateCampaignResponse:
         org = self.repo_org.get_by_id(request.organization_id)
@@ -208,6 +222,13 @@ class OpenCampaignEmployeeService:
 
         emp = camp.employees.get(request.employee_id)
         emp.mark_opened(mark_opened_at=open_at)
+        event = CampaignEmployeeEvent(event_id=uuid4(),
+                                      campaign_id=camp.id,
+                                      employee_id=emp.employee_id,
+                                      occurred_at=open_at,
+                                      event_type=EventType.EmailOpened)
+        if self.repo_event:
+            self.repo_event.save(event)
 
         self.repo_campaign.save(camp)
 
@@ -218,9 +239,11 @@ class OpenCampaignEmployeeService:
 
 class ClickCampaignEmployeeService:
     def __init__(self, repo_campaign: CampaignRepository,
-                 repo_org: OrganizationRepository):
+                 repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
+        self.repo_event = repo_event
 
     def execute(self, request: ClickCampaignEmployeeRequest) -> ClickCampaignEmployeeResponse:
         org = self.repo_org.get_by_id(request.organization_id)
@@ -242,6 +265,14 @@ class ClickCampaignEmployeeService:
             raise EmployeeNotInCampaignError(f"Employee with {request.employee_id} not in this campaign")
 
         emp.mark_clicked(mark_clicked_at=click_at)
+
+        event = CampaignEmployeeEvent(event_id=uuid4(),
+                                      campaign_id=camp.id,
+                                      employee_id=emp.employee_id,
+                                      occurred_at=click_at,
+                                      event_type=EventType.LinkClicked)
+        if self.repo_event:
+            self.repo_event.save(event)
 
         self.repo_campaign.save(camp)
 

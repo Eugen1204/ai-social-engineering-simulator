@@ -8,15 +8,18 @@ from social_engineering_simulator.application.services.create_campaign import Ex
     ClickCampaignEmployeeService
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignIsNotRunningError
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
+from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
+    CampaignEventRepositoryInMemory
 
 
 def test_click_campaign(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
 
     camp.start()
 
-    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org)
+    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
     result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
@@ -26,7 +29,7 @@ def test_click_campaign(employee_in_campaign, application_organization):
 
     employees_with_sent_template = result.employees
 
-    service = ClickCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org)
+    service = ClickCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
     request = ClickCampaignEmployeeRequest(campaign_id=camp.id,
                                            organization_id=org.id,
@@ -54,9 +57,10 @@ def test_click_campaign(employee_in_campaign, application_organization):
 def test_click_with_not_running_campaign(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
 
     camp.start()
-    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org)
+    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
     result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
@@ -68,7 +72,7 @@ def test_click_with_not_running_campaign(employee_in_campaign, application_organ
 
     employees_with_sent_template = result.employees
 
-    service = ClickCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org)
+    service = ClickCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
     request = ClickCampaignEmployeeRequest(campaign_id=camp.id,
                                            organization_id=org.id,
@@ -82,9 +86,10 @@ def test_click_with_not_running_campaign(employee_in_campaign, application_organ
 def test_click_with_wrong_org(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
 
     camp.start()
-    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org)
+    service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
     result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
@@ -94,7 +99,7 @@ def test_click_with_wrong_org(employee_in_campaign, application_organization):
 
     employees_with_sent_template = result.employees
 
-    service = ClickCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org)
+    service = ClickCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
     request = ClickCampaignEmployeeRequest(campaign_id=camp.id,
                                            organization_id=uuid4(),

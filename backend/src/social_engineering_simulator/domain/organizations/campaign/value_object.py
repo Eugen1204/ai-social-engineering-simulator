@@ -42,4 +42,8 @@ class CampaignStatus(Enum):
             raise WrongCampaignStatus("Campaign status not found")
 
 
-
+class EventType(Enum):
+    EmailSent = "Email sent"
+    EmailOpened = "Email opened"
+    LinkClicked = "Link clicked"
+    CredentialsSubmitted = "Credentials submitted"
