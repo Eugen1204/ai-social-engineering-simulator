@@ -171,8 +171,6 @@ def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_org
     # the template was opened and 2 clicks
     assert result_score.risk_score == 0.75
 
-    #emp._submitted_credentials_at.append(datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
-
     emp.mark_credentials_submitted(datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
 
     service_click.execute(request=request_click)

@@ -81,3 +81,16 @@ class EmployeeResultResponse:
     credential_submission_count: int
 
 
+@dataclass(frozen=True)
+class CampaignAnalyticResponse:
+    campaign_id: UUID
+    total_employees: int
+    sent_count: int
+    opened_count: int
+    clicked_employee_count: int
+    credential_submission_employee_count: int
+    open_rate: float
+    click_rate: float
+    credential_submission_rate: float
+    average_risk_score: float
+

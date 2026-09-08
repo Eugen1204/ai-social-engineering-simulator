@@ -3,7 +3,7 @@ from uuid import UUID
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
-    ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse
+    ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse, CampaignAnalyticResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
@@ -12,6 +12,7 @@ from social_engineering_simulator.application.services.exceptions_create_campaig
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
+from social_engineering_simulator.domain.organizations.campaign.campaign_analytics import CampaignAnalytic
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
 from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
@@ -280,3 +281,63 @@ class GetCampaignEmployeeResultService:
                                       click_count=len(employee.clicked_at),
                                       risk_score=employee.risk_score,
                                       credential_submission_count=employee.count_submitted_credentials_at)
+
+
+class GetCampaignAnalyticService:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+
+    def execute(self, campaign_id: UUID, organization_id: UUID) -> CampaignAnalyticResponse:
+        camp = self.repo_campaign.get_by_id(campaign_id)
+        org = self.repo_org.get_by_id(organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {organization_id} not found")
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status in (CampaignStatus.Draft, CampaignStatus.Scheduled):
+            raise CampaignIsDraftStatusError("It is impossible to get results from a campaign "
+                                             "that is in draft or scheduled")
+
+        total_employees = len(camp.employees)
+        sent_count = 0
+        opened_count = 0
+        click_employee_count = 0
+        credential_submission_employee_count = 0
+        total_risk = 0.0
+        for employee in camp.employees.values():
+            if employee.sent_at is not None:
+                sent_count += 1
+                total_risk += employee.risk_score
+            if employee.opened_at is not None:
+                opened_count += 1
+            if employee.clicked_at:
+                click_employee_count += 1
+            if employee.count_submitted_credentials_at > 0:
+                credential_submission_employee_count += 1
+
+        average_risk_score = total_risk / sent_count if sent_count > 0 else None
+
+        analytic = CampaignAnalytic(campaign_id=camp.id,
+                                    total_employees=total_employees,
+                                    sent_count=sent_count,
+                                    opened_count=opened_count,
+                                    clicked_employee_count=click_employee_count,
+                                    credential_submission_employee_count=credential_submission_employee_count,
+                                    average_risk_score=average_risk_score)
+
+        return CampaignAnalyticResponse(campaign_id=camp.id,
+                                        total_employees=analytic.total_employees,
+                                        sent_count=analytic.sent_count,
+                                        opened_count=analytic.opened_count,
+                                        clicked_employee_count=analytic.clicked_employee_count,
+                                        credential_submission_employee_count=
+                                        analytic.credential_submission_employee_count,
+                                        open_rate=analytic.open_rate,
+                                        click_rate=analytic.click_rate,
+                                        credential_submission_rate=analytic.credential_submission_rate,
+                                        average_risk_score=analytic.average_risk_score)
