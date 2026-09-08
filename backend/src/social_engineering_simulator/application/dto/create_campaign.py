@@ -62,3 +62,22 @@ class ClickCampaignEmployeeResponse:
     clicked_at: datetime
 
 
+@dataclass(frozen=True)
+class EmployeeResultRequest:
+    organization_id: UUID
+    campaign_id: UUID
+    employee_id: UUID
+
+
+@dataclass(frozen=True)
+class EmployeeResultResponse:
+    campaign_id: UUID
+    organization_id: UUID
+    employee_id: UUID
+    sent_at: datetime
+    opened_at: datetime
+    click_count: int
+    risk_score: float
+    credential_submission_count: int
+
+
