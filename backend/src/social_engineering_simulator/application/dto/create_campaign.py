@@ -94,3 +94,10 @@ class CampaignAnalyticResponse:
     credential_submission_rate: float
     average_risk_score: float
 
+
+@dataclass(frozen=True)
+class GetCampaignEmployeeTimelineResponse:
+    event_id: UUID
+    event_type: UUID
+    occurred_at: datetime
+

@@ -1,21 +1,25 @@
 from datetime import datetime, UTC
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
-    ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse, CampaignAnalyticResponse
+    ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse, CampaignAnalyticResponse, \
+    GetCampaignEmployeeTimelineResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
     CampaignIsNotRunningError, CampaignNotInThisOrganizationError, EmployeeNotInCampaignError, \
-    CampaignIsDraftStatusError
+    CampaignResultsNotAvailableError
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
 from social_engineering_simulator.domain.organizations.campaign.campaign_analytics import CampaignAnalytic
+from social_engineering_simulator.domain.organizations.campaign.campaign_employee_event import CampaignEmployeeEvent
+from social_engineering_simulator.domain.organizations.campaign.campaign_event_repository import CampaignEventRepository
 from social_engineering_simulator.domain.organizations.campaign.entity import Campaign
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
-from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus
+from social_engineering_simulator.domain.organizations.campaign.value_object import CampaignName, CampaignStatus, \
+    EventType
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
 
@@ -142,9 +146,11 @@ class ScheduleCampaignService:
 
 
 class ExecuteCampaignService:
-    def __init__(self, repo_campaign: CampaignRepository, repo_org: OrganizationRepository):
+    def __init__(self, repo_campaign: CampaignRepository, repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
+        self.repo_event = repo_event
 
     def execute(self, campaign_id: UUID, organization_id: UUID,
                 now: datetime | None = None) -> ExecuteCampaignResponse:
@@ -173,6 +179,13 @@ class ExecuteCampaignService:
             emp.mark_send(send_at=now)
             employees_lst.append(CampaignEmployeeExecutionResult(employee_id=emp.employee_id,
                                                                  status=ExecutionStatus.SENT))
+            event = CampaignEmployeeEvent(event_id=uuid4(),
+                                          campaign_id=campaign.id,
+                                          employee_id=emp.employee_id,
+                                          occurred_at=now,
+                                          event_type=EventType.EmailSent)
+            if self.repo_event:
+                self.repo_event.save(event)
             sent_count += 1
         self.repo_campaign.save(campaign)
 
@@ -186,9 +199,11 @@ class ExecuteCampaignService:
 
 class OpenCampaignEmployeeService:
     def __init__(self, repo_campaign: CampaignRepository,
-                 repo_org: OrganizationRepository):
+                 repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
+        self.repo_event = repo_event
 
     def execute(self, request: OpenTemplateCampaignRequest) -> OpenTemplateCampaignResponse:
         org = self.repo_org.get_by_id(request.organization_id)
@@ -208,6 +223,13 @@ class OpenCampaignEmployeeService:
 
         emp = camp.employees.get(request.employee_id)
         emp.mark_opened(mark_opened_at=open_at)
+        event = CampaignEmployeeEvent(event_id=uuid4(),
+                                      campaign_id=camp.id,
+                                      employee_id=emp.employee_id,
+                                      occurred_at=open_at,
+                                      event_type=EventType.EmailOpened)
+        if self.repo_event:
+            self.repo_event.save(event)
 
         self.repo_campaign.save(camp)
 
@@ -218,9 +240,11 @@ class OpenCampaignEmployeeService:
 
 class ClickCampaignEmployeeService:
     def __init__(self, repo_campaign: CampaignRepository,
-                 repo_org: OrganizationRepository):
+                 repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
+        self.repo_event = repo_event
 
     def execute(self, request: ClickCampaignEmployeeRequest) -> ClickCampaignEmployeeResponse:
         org = self.repo_org.get_by_id(request.organization_id)
@@ -242,6 +266,14 @@ class ClickCampaignEmployeeService:
             raise EmployeeNotInCampaignError(f"Employee with {request.employee_id} not in this campaign")
 
         emp.mark_clicked(mark_clicked_at=click_at)
+
+        event = CampaignEmployeeEvent(event_id=uuid4(),
+                                      campaign_id=camp.id,
+                                      employee_id=emp.employee_id,
+                                      occurred_at=click_at,
+                                      event_type=EventType.LinkClicked)
+        if self.repo_event:
+            self.repo_event.save(event)
 
         self.repo_campaign.save(camp)
 
@@ -267,7 +299,7 @@ class GetCampaignEmployeeResultService:
         if org.id != camp.organization_id:
             raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
         if camp.status == CampaignStatus.Draft:
-            raise CampaignIsDraftStatusError("It is impossible to get results from a campaign that is in draft")
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign that is in draft")
 
         employee = camp.get_employee(request.employee_id)
         if employee is None:
@@ -300,8 +332,8 @@ class GetCampaignAnalyticService:
         if org.id != camp.organization_id:
             raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
         if camp.status in (CampaignStatus.Draft, CampaignStatus.Scheduled):
-            raise CampaignIsDraftStatusError("It is impossible to get results from a campaign "
-                                             "that is in draft or scheduled")
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign "
+                                                   "that is in draft or scheduled")
 
         total_employees = len(camp.employees)
         sent_count = 0
@@ -341,3 +373,38 @@ class GetCampaignAnalyticService:
                                         click_rate=analytic.click_rate,
                                         credential_submission_rate=analytic.credential_submission_rate,
                                         average_risk_score=analytic.average_risk_score)
+
+
+class GetCampaignEmployeeTimeline:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+        self.repo_event = repo_event
+
+    def execute(self, org_id: UUID, campaign_id: UUID, employee_id: UUID) -> list[GetCampaignEmployeeTimelineResponse]:
+        org = self.repo_org.get_by_id(org_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {org_id} not found")
+        camp = self.repo_campaign.get_by_id(campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
+        emp = camp.get_employee(employee_id)
+        if emp is None:
+            raise EmployeeNotInCampaignError(f"Employee with {employee_id} id not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status in (CampaignStatus.Draft, CampaignStatus.Scheduled):
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign "
+                                                   "that is in draft or scheduled")
+
+        events = self.repo_event.get_by_campaign_and_employee_id(campaign_id=camp.id,
+                                                                 employee_id=emp.employee_id)
+        lst = []
+        for e in events:
+            lst.append(GetCampaignEmployeeTimelineResponse(event_id=e.event_id,
+                                                           event_type=e.event_type.value,
+                                                           occurred_at=e.occurred_at))
+        return lst

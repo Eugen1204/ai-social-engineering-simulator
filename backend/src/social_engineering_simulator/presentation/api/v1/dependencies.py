@@ -5,15 +5,19 @@ from fastapi import Depends
 from social_engineering_simulator.application.services.add_employee import AddCampaignEmployeeService, \
     RemoveCampaignEmployeeService
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
-    StartCampaignService, FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService
+    StartCampaignService, FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService, \
+    GetCampaignEmployeeTimeline
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService, \
     GetOrganizationService, AddEmployeeInOrganization, GetEmployeeInOrganization
 from social_engineering_simulator.application.services.create_template import PreviewTemplateService, \
     CreateTemplateService, GetTemplateService, UpdateTemplateService
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.template_engine import EngineTemplate
+from social_engineering_simulator.domain.organizations.campaign.campaign_event_repository import CampaignEventRepository
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
+from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
+    CampaignEventRepositoryInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.organization_repository import \
     OrganizationRepoInMemory
@@ -126,3 +130,17 @@ def update_template_service(repo_template: TemplateRepository = Depends(get_repo
 
 def get_campaign_service(repo_campaign: CampaignRepository = Depends(get_repository_campaign)) -> GetCampaignService:
     return GetCampaignService(repo=repo_campaign)
+
+
+@lru_cache
+def get_repository_events() -> CampaignEventRepository:
+    return CampaignEventRepositoryInMemory()
+
+
+def get_campaign_employee_timeline_service(repo_campaign: CampaignRepository = Depends(get_repository_campaign),
+                                           repo_org: OrganizationRepository = Depends(get_organization_repository),
+                                           repo_event: CampaignEventRepository = Depends(get_repository_events)) \
+        -> GetCampaignEmployeeTimeline:
+    return GetCampaignEmployeeTimeline(repo_campaign=repo_campaign,
+                                       repo_org=repo_org,
+                                       repo_event=repo_event)
