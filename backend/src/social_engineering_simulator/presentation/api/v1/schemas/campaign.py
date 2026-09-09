@@ -30,3 +30,9 @@ class EmployeeCampaignRequest(BaseModel):
     department_id: UUID
 
 
+class GetEmployeeTimelineHttpResponse(BaseModel):
+    event_id: UUID
+    event_type: UUID
+    occurred_at: datetime
+
+

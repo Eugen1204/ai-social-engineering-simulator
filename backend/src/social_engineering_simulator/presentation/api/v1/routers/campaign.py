@@ -8,12 +8,14 @@ from social_engineering_simulator.application.dto.create_campaign import CreateC
 from social_engineering_simulator.application.services.add_employee import AddCampaignEmployeeService, \
     RemoveCampaignEmployeeService
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
-    FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService
+    FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService, \
+    GetCampaignEmployeeTimeline
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_campaign_service, \
     start_campaign_service, finish_campaign_service, cancel_campaign_service, schedule_campaign_service, \
-    add_employee_campaign, remove_employee_campaign, get_campaign_service
+    add_employee_campaign, remove_employee_campaign, get_campaign_service, get_campaign_employee_timeline_service
 from social_engineering_simulator.presentation.api.v1.schemas.campaign import CampaignHttpResponse, \
-    CampaignCreateRequest, ScheduleCampaignHttpRequest, EmployeeCampaignRequest
+    CampaignCreateRequest, ScheduleCampaignHttpRequest, EmployeeCampaignRequest, \
+    GetEmployeeTimelineHttpResponse
 
 router = APIRouter(prefix="/campaigns")
 
@@ -102,4 +104,25 @@ async def get_campaign(campaign_id: UUID,
                                 name=result.name,
                                 status=result.status,
                                 template_version=result.template_version)
+
+
+@router.get("/{campaign_id}/employees/{employee_id}/timeline", status_code=200)
+async def get_employee_timeline(campaign_id: UUID, employee_id: UUID, org_id: UUID,
+                                service: GetCampaignEmployeeTimeline =
+                                Depends(get_campaign_employee_timeline_service)) \
+             -> list[GetEmployeeTimelineHttpResponse]:
+    result = service.execute(org_id=org_id,
+                             campaign_id=campaign_id,
+                             employee_id=employee_id)
+
+    lst = []
+
+    for e in result:
+        lst.append(GetEmployeeTimelineHttpResponse(event_id=e.event_id,
+                                                   event_type=e.event_type,
+                                                   occurred_at=e.occurred_at))
+
+    return lst
+
+
 

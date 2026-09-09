@@ -16,3 +16,6 @@ class CampaignEventRepository(Protocol):
 
     def get_by_event_id(self, event_id: UUID) -> CampaignEmployeeEvent | None:
         ...
+
+    def get_by_campaign_and_employee_id(self, campaign_id: UUID, employee_id: UUID) -> list[CampaignEmployeeEvent]:
+        ...

@@ -20,3 +20,9 @@ class CampaignEventRepositoryInMemory(CampaignEventRepository):
 
     def get_by_event_id(self, event_id: UUID) -> CampaignEmployeeEvent | None:
         return self._events.get(event_id)
+
+    def get_by_campaign_and_employee_id(self, campaign_id: UUID, employee_id: UUID) -> list[CampaignEmployeeEvent]:
+        events = [event for event in self._events.values() if event.campaign_id == campaign_id
+                  and event.employee_id == employee_id]
+        return sorted(events, key=lambda e: e.occurred_at)
+

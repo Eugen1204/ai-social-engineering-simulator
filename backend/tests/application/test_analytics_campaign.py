@@ -5,7 +5,7 @@ import pytest
 
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService, \
     GetCampaignAnalyticService
-from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignIsDraftStatusError, \
+from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignResultsNotAvailableError, \
     CampaignNotFoundError
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
@@ -77,7 +77,7 @@ def test_analytic_raises(employee_in_campaign, application_organization):
 
     service_analytic = GetCampaignAnalyticService(repo_campaign=repo_camp, repo_org=repo_org)
 
-    with pytest.raises(CampaignIsDraftStatusError):
+    with pytest.raises(CampaignResultsNotAvailableError):
         service_analytic.execute(camp.id, org.id)
 
     camp.start()

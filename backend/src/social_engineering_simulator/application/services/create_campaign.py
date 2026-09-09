@@ -3,12 +3,13 @@ from uuid import UUID, uuid4
 
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
-    ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse, CampaignAnalyticResponse
+    ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse, CampaignAnalyticResponse, \
+    GetCampaignEmployeeTimelineResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
     CampaignIsNotRunningError, CampaignNotInThisOrganizationError, EmployeeNotInCampaignError, \
-    CampaignIsDraftStatusError
+    CampaignResultsNotAvailableError
 from social_engineering_simulator.domain.email_template.repository import TemplateRepository
 from social_engineering_simulator.domain.email_template.services.exceptions import TemplateNotFoundError, \
     TemplateNotInOrganization
@@ -298,7 +299,7 @@ class GetCampaignEmployeeResultService:
         if org.id != camp.organization_id:
             raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
         if camp.status == CampaignStatus.Draft:
-            raise CampaignIsDraftStatusError("It is impossible to get results from a campaign that is in draft")
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign that is in draft")
 
         employee = camp.get_employee(request.employee_id)
         if employee is None:
@@ -331,8 +332,8 @@ class GetCampaignAnalyticService:
         if org.id != camp.organization_id:
             raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
         if camp.status in (CampaignStatus.Draft, CampaignStatus.Scheduled):
-            raise CampaignIsDraftStatusError("It is impossible to get results from a campaign "
-                                             "that is in draft or scheduled")
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign "
+                                                   "that is in draft or scheduled")
 
         total_employees = len(camp.employees)
         sent_count = 0
@@ -372,3 +373,38 @@ class GetCampaignAnalyticService:
                                         click_rate=analytic.click_rate,
                                         credential_submission_rate=analytic.credential_submission_rate,
                                         average_risk_score=analytic.average_risk_score)
+
+
+class GetCampaignEmployeeTimeline:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+        self.repo_event = repo_event
+
+    def execute(self, org_id: UUID, campaign_id: UUID, employee_id: UUID) -> list[GetCampaignEmployeeTimelineResponse]:
+        org = self.repo_org.get_by_id(org_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {org_id} not found")
+        camp = self.repo_campaign.get_by_id(campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
+        emp = camp.get_employee(employee_id)
+        if emp is None:
+            raise EmployeeNotInCampaignError(f"Employee with {employee_id} id not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status in (CampaignStatus.Draft, CampaignStatus.Scheduled):
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign "
+                                                   "that is in draft or scheduled")
+
+        events = self.repo_event.get_by_campaign_and_employee_id(campaign_id=camp.id,
+                                                                 employee_id=emp.employee_id)
+        lst = []
+        for e in events:
+            lst.append(GetCampaignEmployeeTimelineResponse(event_id=e.event_id,
+                                                           event_type=e.event_type.value,
+                                                           occurred_at=e.occurred_at))
+        return lst

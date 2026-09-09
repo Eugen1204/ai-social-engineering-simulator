@@ -26,6 +26,6 @@ class TemplateAlreadyOpenedError(Exception):
     pass
 
 
-class CampaignIsDraftStatusError(Exception):
+class CampaignResultsNotAvailableError(Exception):
     pass
 

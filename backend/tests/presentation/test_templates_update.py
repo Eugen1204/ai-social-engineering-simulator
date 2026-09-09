@@ -10,7 +10,7 @@ from social_engineering_simulator.domain.email_template.entity import Template
 def test_update_template(client_with_repos, created_template):
     assert created_template['version'] == 1
 
-    client, _, _ = client_with_repos
+    client, _, _, _, _ = client_with_repos
     response = client.patch(f"organizations/{created_template['organization_id']}/templates/{created_template['id']}",
                             json={"content": "new content",
                                   "subject": None})
@@ -45,7 +45,7 @@ def test_update_template(client_with_repos, created_template):
 
 
 def test_campaign_keeps_template_snapshot_after_template_update(client_with_repos, created_template, created_campaign):
-    client, template_repo, _ = client_with_repos
+    client, template_repo, _, _, _ = client_with_repos
 
     assert created_template['version'] == 1
 
