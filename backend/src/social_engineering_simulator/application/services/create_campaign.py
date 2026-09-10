@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
     ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse, CampaignAnalyticResponse, \
-    GetCampaignEmployeeTimelineResponse
+    GetCampaignEmployeeTimelineResponse, CampaignEmployeeRiskResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
@@ -408,3 +408,38 @@ class GetCampaignEmployeeTimeline:
                                                            event_type=e.event_type.value,
                                                            occurred_at=e.occurred_at))
         return lst
+
+
+class GetCampaignRiskRanking:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+
+    def execute(self, organization_id: UUID, campaign_id: UUID) -> list[CampaignEmployeeRiskResponse]:
+        org = self.repo_org.get_by_id(organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {organization_id} not found")
+        camp = self.repo_campaign.get_by_id(campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status in (CampaignStatus.Draft, CampaignStatus.Scheduled):
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign "
+                                                   "that is in draft or scheduled")
+
+        emp_in_campaigns = []
+        for emp in camp.employees.values():
+            if emp.risk_score == 0.0:
+                continue
+            emp_in_campaigns.append(CampaignEmployeeRiskResponse(employee_id=emp.employee_id,
+                                                                 risk_score=emp.risk_score,
+                                                                 sent_at=emp.sent_at,
+                                                                 opened_at=emp.opened_at,
+                                                                 click_count=len(emp.clicked_at),
+                                                                 credential_submission_count=
+                                                                 emp.count_submitted_credentials_at))
+
+        return sorted(emp_in_campaigns, key=lambda e: (-e.risk_score, e.employee_id))

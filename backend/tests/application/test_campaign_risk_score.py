@@ -6,10 +6,12 @@ import pytest
 from social_engineering_simulator.application.dto.create_campaign import ClickCampaignEmployeeRequest, \
     EmployeeResultRequest, OpenTemplateCampaignRequest
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService, \
-    ClickCampaignEmployeeService, GetCampaignEmployeeResultService, OpenCampaignEmployeeService
+    ClickCampaignEmployeeService, GetCampaignEmployeeResultService, OpenCampaignEmployeeService, GetCampaignRiskRanking
 from social_engineering_simulator.application.services.exceptions_create_campaign import EmployeeNotInCampaignError, \
-    CampaignNotFoundError, CampaignIsNotRunningError
+    CampaignNotFoundError, CampaignIsNotRunningError, CampaignResultsNotAvailableError
 from social_engineering_simulator.domain.organizations.campaign.exceptions import EmployeeNotFoundInCampaign
+from social_engineering_simulator.domain.organizations.department.employee.value_object import EmployeeName, Email
+from social_engineering_simulator.domain.organizations.department.value_object import DepartmentName
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
     CampaignEventRepositoryInMemory
@@ -183,3 +185,161 @@ def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_org
 
     # the template was opened and 2 clicks and mark credentials submitted
     assert result_score.risk_score == 1.0
+
+
+def test_get_campaign_risk_score(employee_in_campaign, application_organization):
+    org, repo_org = application_organization
+    camp, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
+    emp_4 = org.add_employee(name=EmployeeName("Emp four"), email=Email("efefe@mwdem.co"),
+                             dep_name=DepartmentName("HR"))
+
+    camp.start()
+
+    service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
+
+    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    emp_1 = camp.get_employee(result_sent.employees[0].employee_id)
+
+    emp_2 = camp.get_employee(result_sent.employees[1].employee_id)
+
+    emp_3 = camp.get_employee(result_sent.employees[2].employee_id)
+
+    camp.assign_employee(emp_4.id)
+
+    emp_2.mark_opened(datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    emp_3.mark_opened(datetime(2027, 1, 1, 11, 10, tzinfo=UTC))
+
+    emp_3.mark_clicked(datetime(2027, 1, 1, 11, 10, tzinfo=UTC))
+
+    emp_3.mark_credentials_submitted(datetime(2027, 1, 1, 12, 10, tzinfo=UTC))
+
+    service_get_cam_risk = GetCampaignRiskRanking(repo_campaign=repo_camp,
+                                                  repo_org=repo_org)
+
+    response_get_risk = service_get_cam_risk.execute(organization_id=org.id,
+                                                     campaign_id=camp.id)
+
+    assert len(response_get_risk) == 3
+
+    assert response_get_risk[0].risk_score == 1.0
+
+    assert response_get_risk[1].risk_score == 0.4
+
+    assert response_get_risk[2].risk_score == 0.1
+
+    assert len(camp.employees) == 4
+
+
+def test_get_same_risk_employee(employee_in_campaign, application_organization):
+    org, repo_org = application_organization
+    camp, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
+
+    camp.start()
+
+    service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
+
+    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    emp_1 = camp.get_employee(result_sent.employees[0].employee_id)
+    emp_2 = camp.get_employee(result_sent.employees[1].employee_id)
+    emp_3 = camp.get_employee(result_sent.employees[2].employee_id)
+
+    emp_1.mark_opened(datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    emp_2.mark_opened(datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    emp_1.mark_credentials_submitted(datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    emp_2.mark_credentials_submitted(datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    service_get_cam_risk = GetCampaignRiskRanking(repo_campaign=repo_camp,
+                                                  repo_org=repo_org)
+
+    response_get_risk = service_get_cam_risk.execute(organization_id=org.id,
+                                                     campaign_id=camp.id)
+
+    assert len(response_get_risk) == 3
+
+    response_get_risk = service_get_cam_risk.execute(organization_id=org.id,
+                                                     campaign_id=camp.id)
+
+    assert response_get_risk[0].risk_score == 1.0
+    assert response_get_risk[1].risk_score == 1.0
+    assert response_get_risk[2].risk_score == 0.1
+
+
+def test_get_risk_score_raises(employee_in_campaign, application_organization):
+    org, repo_org = application_organization
+    camp, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
+
+    service_get_cam_risk = GetCampaignRiskRanking(repo_campaign=repo_camp,
+                                                  repo_org=repo_org)
+
+    with pytest.raises(CampaignResultsNotAvailableError):
+        service_get_cam_risk.execute(organization_id=org.id,
+                                     campaign_id=camp.id)
+
+    camp.start()
+
+    service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
+
+    service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                         now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    with pytest.raises(CampaignNotFoundError):
+        service_get_cam_risk.execute(organization_id=org.id,
+                                     campaign_id=uuid4())
+
+    with pytest.raises(OrganizationNotFoundError):
+        service_get_cam_risk.execute(organization_id=uuid4(),
+                                     campaign_id=camp.id)
+
+
+def test_with_2_campaign_get_risk_score(employee_in_campaign, application_organization, make_draft_campaigns):
+    org, repo_org = application_organization
+    camp_1, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
+    camp_2 = make_draft_campaigns(name="Camp_2", with_employee=True, organization_id=org.id)
+    repo_camp.save(camp_2)
+
+    camp_2.start()
+    camp_1.start()
+
+    service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
+
+    result_sent_camp_1 = service_sent.execute(campaign_id=camp_1.id, organization_id=org.id,
+                                              now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    result_sent_camp_2 = service_sent.execute(campaign_id=camp_2.id, organization_id=org.id,
+                                              now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    emp_1 = camp_1.get_employee(result_sent_camp_1.employees[0].employee_id)
+    emp_2 = camp_1.get_employee(result_sent_camp_1.employees[1].employee_id)
+    emp_3 = camp_1.get_employee(result_sent_camp_1.employees[2].employee_id)
+
+    emp_1.mark_opened()
+    emp_1.mark_credentials_submitted()
+    emp_2.mark_opened()
+    emp_2.mark_credentials_submitted()
+    emp_3.mark_opened()
+    emp_3.mark_credentials_submitted()
+
+    service_get_cam_risk = GetCampaignRiskRanking(repo_campaign=repo_camp,
+                                                  repo_org=repo_org)
+
+    camp_2_result = service_get_cam_risk.execute(organization_id=org.id,
+                                                 campaign_id=camp_2.id)
+    assert len(camp_2_result) == 1
+
+    assert sum([e.risk_score for e in camp_2_result]) == 0.1
+
+    camp_1_result = service_get_cam_risk.execute(organization_id=org.id,
+                                                 campaign_id=camp_1.id)
+
+    assert sum([e.risk_score for e in camp_1_result]) == 3.0
+

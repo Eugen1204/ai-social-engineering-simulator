@@ -9,13 +9,14 @@ from social_engineering_simulator.application.services.add_employee import AddCa
     RemoveCampaignEmployeeService
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
     FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService, \
-    GetCampaignEmployeeTimeline
+    GetCampaignEmployeeTimeline, GetCampaignRiskRanking
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_campaign_service, \
     start_campaign_service, finish_campaign_service, cancel_campaign_service, schedule_campaign_service, \
-    add_employee_campaign, remove_employee_campaign, get_campaign_service, get_campaign_employee_timeline_service
+    add_employee_campaign, remove_employee_campaign, get_campaign_service, get_campaign_employee_timeline_service, \
+    get_campaign_risk_ranging
 from social_engineering_simulator.presentation.api.v1.schemas.campaign import CampaignHttpResponse, \
     CampaignCreateRequest, ScheduleCampaignHttpRequest, EmployeeCampaignRequest, \
-    GetEmployeeTimelineHttpResponse
+    GetEmployeeTimelineHttpResponse, CampaignEmployeeRiskHttpResponse
 
 router = APIRouter(prefix="/campaigns")
 
@@ -124,5 +125,24 @@ async def get_employee_timeline(campaign_id: UUID, employee_id: UUID, org_id: UU
 
     return lst
 
+
+@router.get("/{campaign_id}/employees/risk-ranking", status_code=200)
+async def get_risk_ranging_in_campaign(campaign_id: UUID,
+                                       organization_id: UUID,
+                                       service: GetCampaignRiskRanking = Depends(get_campaign_risk_ranging)) \
+        -> list[CampaignEmployeeRiskHttpResponse]:
+    result = service.execute(organization_id=organization_id,
+                             campaign_id=campaign_id)
+
+    lst_campaign_emp_risk = []
+    for e in result:
+        lst_campaign_emp_risk.append(CampaignEmployeeRiskHttpResponse(employee_id=e.employee_id,
+                                                                      risk_score=e.risk_score,
+                                                                      sent_at=e.sent_at,
+                                                                      opened_at=e.opened_at,
+                                                                      click_count=e.click_count,
+                                                                      credential_submission_count=
+                                                                      e.credential_submission_count))
+    return lst_campaign_emp_risk
 
 

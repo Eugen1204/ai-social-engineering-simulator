@@ -101,3 +101,13 @@ class GetCampaignEmployeeTimelineResponse:
     event_type: UUID
     occurred_at: datetime
 
+
+@dataclass(frozen=True)
+class CampaignEmployeeRiskResponse:
+    employee_id: UUID
+    risk_score: float
+    sent_at: datetime | None
+    opened_at: datetime | None
+    click_count: int
+    credential_submission_count: int
+
