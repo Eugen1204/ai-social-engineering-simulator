@@ -1,9 +1,12 @@
-from uuid import uuid4
+from typing import Callable
+from uuid import uuid4, UUID
 
 import pytest
 from starlette.testclient import TestClient
 
 from social_engineering_simulator.domain.email_template.services.template_engine import EngineTemplate
+from social_engineering_simulator.domain.organizations.department.employee.entity import Employee
+from social_engineering_simulator.domain.organizations.department.employee.value_object import EmployeeName
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
     CampaignEventRepositoryInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
@@ -65,6 +68,7 @@ def created_campaign(client_with_repos, created_organization, created_template):
     }
 
     response = client.post("/campaigns/", json=payload)
+    response.raise_for_status()
 
     return response.json()
 
@@ -91,3 +95,32 @@ def created_campaign_with_emp(client_with_repos, created_employee, created_campa
     response = client.post(f"campaigns/{created_campaign['id']}/employees/{created_employee['id']}")
 
     return response.json()
+
+
+@pytest.fixture()
+def created_employee_fabric(client_with_repos, created_organization, created_campaign):
+    client, _, _, _, _ = client_with_repos
+
+    def _make_employee_in_organization(name: str = "Test Test",
+                                       email: str | None = None,
+                                       dep_name: str = "HR",
+                                       org_id: UUID | None = None,
+                                       add_in_campaign: bool = True,
+                                       campaign_id: UUID | None = None,
+                                       **kwargs) -> dict:
+        payload = {
+                    "name": name,
+                    "email": email,
+                    "dep_name": dep_name,
+                    **kwargs
+                  }
+        response = client.post(f"/organizations/{org_id or created_organization['id']}/employees", json=payload)
+        response.raise_for_status()
+        if add_in_campaign:
+            cid = created_campaign['id'] if campaign_id is None else campaign_id
+            resp = client.post(f"/campaigns/{cid}/employees/{response.json()['id']}")
+            resp.raise_for_status()
+
+        return response.json()
+
+    return _make_employee_in_organization
