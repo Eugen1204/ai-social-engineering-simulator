@@ -6,7 +6,8 @@ import pytest
 from social_engineering_simulator.application.dto.create_campaign import ClickCampaignEmployeeRequest, \
     EmployeeResultRequest, OpenTemplateCampaignRequest
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService, \
-    ClickCampaignEmployeeService, GetCampaignEmployeeResultService, OpenCampaignEmployeeService, GetCampaignRiskRanking
+    ClickCampaignEmployeeService, GetCampaignEmployeeResultService, OpenCampaignEmployeeService, GetCampaignRiskRanking, \
+    GetCampaignAnalyticService
 from social_engineering_simulator.application.services.exceptions_create_campaign import EmployeeNotInCampaignError, \
     CampaignNotFoundError, CampaignIsNotRunningError, CampaignResultsNotAvailableError
 from social_engineering_simulator.domain.organizations.campaign.exceptions import EmployeeNotFoundInCampaign
@@ -343,3 +344,47 @@ def test_with_2_campaign_get_risk_score(employee_in_campaign, application_organi
 
     assert sum([e.risk_score for e in camp_1_result]) == 3.0
 
+
+def test_get_campaign_analytic(employee_in_campaign, application_organization):
+    org, repo_org = application_organization
+    camp, repo_camp = employee_in_campaign
+    repo_event = CampaignEventRepositoryInMemory()
+
+    camp.start()
+
+    service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
+
+    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+
+    emp_1 = camp.get_employee(result_sent.employees[0].employee_id)
+    emp_2 = camp.get_employee(result_sent.employees[1].employee_id)
+    emp_3 = camp.get_employee(result_sent.employees[2].employee_id)
+
+    service = GetCampaignAnalyticService(repo_campaign=repo_camp,
+                                         repo_org=repo_org)
+
+    result = service.execute(campaign_id=camp.id,
+                             organization_id=org.id)
+
+    assert result.sent_count == 3
+    assert result.campaign_id == camp.id
+    assert result.total_employees == 3
+    assert result.average_risk_score == pytest.approx(0.1)
+
+    emp_1.mark_opened()
+    emp_2.mark_opened()
+    emp_2.mark_clicked()
+    emp_2.mark_clicked()
+    emp_3.mark_opened()
+    emp_3.mark_clicked()
+    emp_3.mark_credentials_submitted()
+
+    result_2 = service.execute(campaign_id=camp.id,
+                               organization_id=org.id)
+
+    expected = (emp_1.risk_score + emp_2.risk_score + emp_3.risk_score) / 3
+
+    assert result_2.average_risk_score == pytest.approx(expected)
+    assert result_2.open_rate == pytest.approx(100)
+    assert result_2.highest_risk_employee_count == 2

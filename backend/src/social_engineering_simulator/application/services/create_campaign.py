@@ -341,6 +341,7 @@ class GetCampaignAnalyticService:
         click_employee_count = 0
         credential_submission_employee_count = 0
         total_risk = 0.0
+        high_risk_count = 0
         for employee in camp.employees.values():
             if employee.sent_at is not None:
                 sent_count += 1
@@ -351,6 +352,8 @@ class GetCampaignAnalyticService:
                 click_employee_count += 1
             if employee.count_submitted_credentials_at > 0:
                 credential_submission_employee_count += 1
+            if employee.risk_score >= 0.7:
+                high_risk_count += 1
 
         average_risk_score = total_risk / sent_count if sent_count > 0 else None
 
@@ -372,7 +375,8 @@ class GetCampaignAnalyticService:
                                         open_rate=analytic.open_rate,
                                         click_rate=analytic.click_rate,
                                         credential_submission_rate=analytic.credential_submission_rate,
-                                        average_risk_score=analytic.average_risk_score)
+                                        average_risk_score=analytic.average_risk_score,
+                                        highest_risk_employee_count=high_risk_count)
 
 
 class GetCampaignEmployeeTimeline:
@@ -432,7 +436,7 @@ class GetCampaignRiskRanking:
 
         emp_in_campaigns = []
         for emp in camp.employees.values():
-            if emp.risk_score == 0.0:
+            if emp.risk_score == 0:
                 continue
             emp_in_campaigns.append(CampaignEmployeeRiskResponse(employee_id=emp.employee_id,
                                                                  risk_score=emp.risk_score,

@@ -7,16 +7,16 @@ from social_engineering_simulator.application.dto.add_employee import AddCampaig
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, ScheduleCampaignRequest
 from social_engineering_simulator.application.services.add_employee import AddCampaignEmployeeService, \
     RemoveCampaignEmployeeService
-from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
+from social_engineering_simulator.application.services.create_campaign import \
     FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService, \
-    GetCampaignEmployeeTimeline, GetCampaignRiskRanking
+    GetCampaignEmployeeTimeline, GetCampaignRiskRanking, GetCampaignAnalyticService
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_campaign_service, \
     start_campaign_service, finish_campaign_service, cancel_campaign_service, schedule_campaign_service, \
     add_employee_campaign, remove_employee_campaign, get_campaign_service, get_campaign_employee_timeline_service, \
-    get_campaign_risk_ranging
+    get_campaign_risk_ranging, get_campaign_analytic
 from social_engineering_simulator.presentation.api.v1.schemas.campaign import CampaignHttpResponse, \
     CampaignCreateRequest, ScheduleCampaignHttpRequest, EmployeeCampaignRequest, \
-    GetEmployeeTimelineHttpResponse, CampaignEmployeeRiskHttpResponse
+    GetEmployeeTimelineHttpResponse, CampaignEmployeeRiskHttpResponse, CampaignAnalyticHttpResponse
 
 router = APIRouter(prefix="/campaigns")
 
@@ -111,7 +111,7 @@ async def get_campaign(campaign_id: UUID,
 async def get_employee_timeline(campaign_id: UUID, employee_id: UUID, org_id: UUID,
                                 service: GetCampaignEmployeeTimeline =
                                 Depends(get_campaign_employee_timeline_service)) \
-             -> list[GetEmployeeTimelineHttpResponse]:
+        -> list[GetEmployeeTimelineHttpResponse]:
     result = service.execute(org_id=org_id,
                              campaign_id=campaign_id,
                              employee_id=employee_id)
@@ -146,3 +146,20 @@ async def get_risk_ranging_in_campaign(campaign_id: UUID,
     return lst_campaign_emp_risk
 
 
+@router.get("/{campaign_id}/dashboard")
+async def get_campaign_dashboard(campaign_id: UUID, organization_id: UUID,
+                                 service: GetCampaignAnalyticService = Depends(get_campaign_analytic)) \
+        -> CampaignAnalyticHttpResponse:
+    result = service.execute(campaign_id=campaign_id, organization_id=organization_id)
+
+    return CampaignAnalyticHttpResponse(campaign_id=result.campaign_id,
+                                        total_employees=result.total_employees,
+                                        sent_count=result.sent_count,
+                                        opened_count=result.opened_count,
+                                        clicked_employee_count=result.clicked_employee_count,
+                                        credential_submission_employee_count=result.credential_submission_employee_count,
+                                        open_rate=result.open_rate,
+                                        click_rate=result.click_rate,
+                                        credential_submission_rate=result.credential_submission_rate,
+                                        average_risk_score=result.average_risk_score,
+                                        highest_risk_employee_count=result.highest_risk_employee_count)

@@ -27,15 +27,16 @@ class CampaignAnalytic:
     def _calculate_open_rate(self) -> float | None:
         if self.sent_count == 0:
             return None
-        return self.opened_count / self.sent_count
+        return round((self.opened_count / self.sent_count) * 100, 2)
 
     def _calculate_click_rate(self) -> float | None:
         if self.sent_count == 0:
             return None
-        return self.clicked_employee_count / self.sent_count
+        return round((self.clicked_employee_count / self.sent_count) * 100, 2)
 
     def _calculate_credential_submission_rate(self) -> float | None:
         if self.sent_count == 0:
             return None
-        return self.credential_submission_employee_count / self.sent_count
+        return round((self.credential_submission_employee_count / self.sent_count) * 100, 2)
+
 

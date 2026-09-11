@@ -89,10 +89,11 @@ class CampaignAnalyticResponse:
     opened_count: int
     clicked_employee_count: int
     credential_submission_employee_count: int
-    open_rate: float
-    click_rate: float
-    credential_submission_rate: float
+    open_rate: float | None
+    click_rate: float | None
+    credential_submission_rate: float | None
     average_risk_score: float
+    highest_risk_employee_count: int
 
 
 @dataclass(frozen=True)
