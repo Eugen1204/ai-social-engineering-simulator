@@ -7,7 +7,7 @@ from social_engineering_simulator.application.services.create_campaign import Ex
 
 
 def test_get_campaign_analytic(client_with_repos, created_organization, created_campaign_with_emp, created_campaign,
-                               created_employee_fabric):
+                               created_employee_factory):
     client, _, repo_org, repo_events, repo_campaign = client_with_repos
 
     campaign_id = created_campaign['id']
@@ -15,9 +15,9 @@ def test_get_campaign_analytic(client_with_repos, created_organization, created_
 
     client.post(f"campaigns/{campaign_id}/start")
 
-    emp_1 = created_employee_fabric(name="Test One", email="ecev@mdwf.ci")
-    emp_2 = created_employee_fabric(name="Test Twmmo", email="eceev@mdewf.ci")
-    emp_3 = created_employee_fabric(name="Test Three", email="ece11cev@mdewf.ci")
+    emp_1 = created_employee_factory(name="Test One", email="ecev@mdwf.ci")
+    emp_2 = created_employee_factory(name="Test Twmmo", email="eceev@mdewf.ci")
+    emp_3 = created_employee_factory(name="Test Three", email="ece11cev@mdewf.ci")
 
     service = ExecuteCampaignService(repo_campaign=repo_campaign, repo_org=repo_org, repo_event=repo_events)
 

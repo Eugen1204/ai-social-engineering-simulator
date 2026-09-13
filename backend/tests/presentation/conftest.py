@@ -98,7 +98,7 @@ def created_campaign_with_emp(client_with_repos, created_employee, created_campa
 
 
 @pytest.fixture()
-def created_employee_fabric(client_with_repos, created_organization, created_campaign):
+def created_employee_factory(client_with_repos, created_organization, created_campaign):
     client, _, _, _, _ = client_with_repos
 
     def _make_employee_in_organization(name: str = "Test Test",

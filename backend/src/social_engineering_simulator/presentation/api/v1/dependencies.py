@@ -6,7 +6,7 @@ from social_engineering_simulator.application.services.add_employee import AddCa
     RemoveCampaignEmployeeService
 from social_engineering_simulator.application.services.create_campaign import CreateCampaignService, \
     StartCampaignService, FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService, \
-    GetCampaignEmployeeTimeline, GetCampaignRiskRanking, GetCampaignAnalyticService
+    GetCampaignEmployeeTimeline, GetCampaignRiskRanking, GetCampaignAnalyticService, GetCampaignEmployeeRiskProfile
 from social_engineering_simulator.application.services.create_organization import CreateOrganizationService, \
     GetOrganizationService, AddEmployeeInOrganization, GetEmployeeInOrganization
 from social_engineering_simulator.application.services.create_template import PreviewTemplateService, \
@@ -156,3 +156,12 @@ def get_campaign_analytic(repo_campaign: CampaignRepository = Depends(get_reposi
                           repo_org: OrganizationRepository = Depends(get_organization_repository)) \
         -> GetCampaignAnalyticService:
     return GetCampaignAnalyticService(repo_campaign=repo_campaign, repo_org=repo_org)
+
+
+def get_campaign_employee_risk_profile(repo_campaign: CampaignRepository = Depends(get_repository_campaign),
+                                       repo_org: OrganizationRepository = Depends(get_organization_repository),
+                                       repo_event: CampaignEventRepository = Depends(get_repository_events)) \
+        -> GetCampaignEmployeeRiskProfile:
+    return GetCampaignEmployeeRiskProfile(repo_campaign=repo_campaign,
+                                          repo_org=repo_org,
+                                          repo_events=repo_event)

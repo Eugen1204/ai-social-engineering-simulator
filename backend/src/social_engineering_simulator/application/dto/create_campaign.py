@@ -112,3 +112,26 @@ class CampaignEmployeeRiskResponse:
     click_count: int
     credential_submission_count: int
 
+
+@dataclass(frozen=True)
+class CampaignEmployeeRiskProfileResponse:
+    employee_id: UUID
+    campaign_id: UUID
+    risk_score: float
+    sent_at: datetime | None
+    opened_at: datetime | None
+    click_count: int
+    credential_submission_count: int
+    is_sent: bool
+    is_opened: bool
+    is_clicked: bool
+    credentials_submitted: bool
+    event_count: int
+    last_event_at: datetime | None
+
+
+@dataclass(frozen=True)
+class CredentialSubmissionEmployeeResponse:
+    campaign_id: UUID
+    employee_id: UUID
+    credential_submission_at: datetime

@@ -9,14 +9,15 @@ from social_engineering_simulator.application.services.add_employee import AddCa
     RemoveCampaignEmployeeService
 from social_engineering_simulator.application.services.create_campaign import \
     FinishCampaignService, CancelCampaignService, ScheduleCampaignService, GetCampaignService, \
-    GetCampaignEmployeeTimeline, GetCampaignRiskRanking, GetCampaignAnalyticService
+    GetCampaignEmployeeTimeline, GetCampaignRiskRanking, GetCampaignAnalyticService, GetCampaignEmployeeRiskProfile
 from social_engineering_simulator.presentation.api.v1.dependencies import get_create_campaign_service, \
     start_campaign_service, finish_campaign_service, cancel_campaign_service, schedule_campaign_service, \
     add_employee_campaign, remove_employee_campaign, get_campaign_service, get_campaign_employee_timeline_service, \
-    get_campaign_risk_ranging, get_campaign_analytic
+    get_campaign_risk_ranging, get_campaign_analytic, get_campaign_employee_risk_profile
 from social_engineering_simulator.presentation.api.v1.schemas.campaign import CampaignHttpResponse, \
     CampaignCreateRequest, ScheduleCampaignHttpRequest, EmployeeCampaignRequest, \
-    GetEmployeeTimelineHttpResponse, CampaignEmployeeRiskHttpResponse, CampaignAnalyticHttpResponse
+    GetEmployeeTimelineHttpResponse, CampaignEmployeeRiskHttpResponse, CampaignAnalyticHttpResponse, \
+    CampaignEmployeeRiskProfileHttpResponse
 
 router = APIRouter(prefix="/campaigns")
 
@@ -146,7 +147,7 @@ async def get_risk_ranging_in_campaign(campaign_id: UUID,
     return lst_campaign_emp_risk
 
 
-@router.get("/{campaign_id}/dashboard")
+@router.get("/{campaign_id}/dashboard", status_code=200)
 async def get_campaign_dashboard(campaign_id: UUID, organization_id: UUID,
                                  service: GetCampaignAnalyticService = Depends(get_campaign_analytic)) \
         -> CampaignAnalyticHttpResponse:
@@ -163,3 +164,27 @@ async def get_campaign_dashboard(campaign_id: UUID, organization_id: UUID,
                                         credential_submission_rate=result.credential_submission_rate,
                                         average_risk_score=result.average_risk_score,
                                         highest_risk_employee_count=result.highest_risk_employee_count)
+
+
+@router.get("/{campaign_id}/employees/{employee_id}/risk-profile", status_code=200)
+async def get_campaign_employee_risk(campaign_id: UUID, employee_id: UUID,
+                                     organization_id: UUID,
+                                     service: GetCampaignEmployeeRiskProfile =
+                                     Depends(get_campaign_employee_risk_profile)) \
+        -> CampaignEmployeeRiskProfileHttpResponse:
+    result = service.execute(organization_id=organization_id,
+                             campaign_id=campaign_id,
+                             employee_id=employee_id)
+    return CampaignEmployeeRiskProfileHttpResponse(employee_id=result.employee_id,
+                                                   campaign_id=result.campaign_id,
+                                                   risk_score=result.risk_score,
+                                                   sent_at=result.sent_at,
+                                                   opened_at=result.opened_at,
+                                                   click_count=result.click_count,
+                                                   credential_submission_count=result.credential_submission_count,
+                                                   is_sent=result.is_sent,
+                                                   is_opened=result.is_opened,
+                                                   is_clicked=result.is_clicked,
+                                                   credentials_submitted=result.credentials_submitted,
+                                                   event_count=result.event_count,
+                                                   last_event_at=result.last_event_at)
