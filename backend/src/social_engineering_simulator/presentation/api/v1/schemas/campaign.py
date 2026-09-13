@@ -45,3 +45,31 @@ class CampaignEmployeeRiskHttpResponse(BaseModel):
     credential_submission_count: int
 
 
+class CampaignAnalyticHttpResponse(BaseModel):
+    campaign_id: UUID
+    total_employees: int
+    sent_count: int
+    opened_count: int | None
+    clicked_employee_count: int | None
+    credential_submission_employee_count: int | None
+    open_rate: float
+    click_rate: float
+    credential_submission_rate: float
+    average_risk_score: float
+    highest_risk_employee_count: int
+
+
+class CampaignEmployeeRiskProfileHttpResponse(BaseModel):
+    employee_id: UUID
+    campaign_id: UUID
+    risk_score: float
+    sent_at: datetime | None
+    opened_at: datetime | None
+    click_count: int
+    credential_submission_count: int
+    is_sent: bool
+    is_opened: bool
+    is_clicked: bool
+    credentials_submitted: bool
+    event_count: int
+    last_event_at: datetime | None

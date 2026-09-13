@@ -4,7 +4,8 @@ from uuid import UUID, uuid4
 from social_engineering_simulator.application.dto.create_campaign import CreateCampaignRequest, CampaignResponse, \
     ScheduleCampaignRequest, OpenTemplateCampaignRequest, OpenTemplateCampaignResponse, ClickCampaignEmployeeRequest, \
     ClickCampaignEmployeeResponse, EmployeeResultRequest, EmployeeResultResponse, CampaignAnalyticResponse, \
-    GetCampaignEmployeeTimelineResponse, CampaignEmployeeRiskResponse
+    GetCampaignEmployeeTimelineResponse, CampaignEmployeeRiskResponse, CampaignEmployeeRiskProfileResponse, \
+    CredentialSubmissionEmployeeResponse
 from social_engineering_simulator.application.dto.create_organization import ExecuteCampaignResponse, \
     CampaignEmployeeExecutionResult, ExecutionStatus
 from social_engineering_simulator.application.services.exceptions_create_campaign import CampaignNotFoundError, \
@@ -341,6 +342,7 @@ class GetCampaignAnalyticService:
         click_employee_count = 0
         credential_submission_employee_count = 0
         total_risk = 0.0
+        high_risk_count = 0
         for employee in camp.employees.values():
             if employee.sent_at is not None:
                 sent_count += 1
@@ -351,6 +353,8 @@ class GetCampaignAnalyticService:
                 click_employee_count += 1
             if employee.count_submitted_credentials_at > 0:
                 credential_submission_employee_count += 1
+            if employee.risk_score >= 0.7:
+                high_risk_count += 1
 
         average_risk_score = total_risk / sent_count if sent_count > 0 else None
 
@@ -372,7 +376,8 @@ class GetCampaignAnalyticService:
                                         open_rate=analytic.open_rate,
                                         click_rate=analytic.click_rate,
                                         credential_submission_rate=analytic.credential_submission_rate,
-                                        average_risk_score=analytic.average_risk_score)
+                                        average_risk_score=analytic.average_risk_score,
+                                        highest_risk_employee_count=high_risk_count)
 
 
 class GetCampaignEmployeeTimeline:
@@ -432,7 +437,7 @@ class GetCampaignRiskRanking:
 
         emp_in_campaigns = []
         for emp in camp.employees.values():
-            if emp.risk_score == 0.0:
+            if emp.risk_score == 0:
                 continue
             emp_in_campaigns.append(CampaignEmployeeRiskResponse(employee_id=emp.employee_id,
                                                                  risk_score=emp.risk_score,
@@ -443,3 +448,87 @@ class GetCampaignRiskRanking:
                                                                  emp.count_submitted_credentials_at))
 
         return sorted(emp_in_campaigns, key=lambda e: (-e.risk_score, e.employee_id))
+
+
+class GetCampaignEmployeeRiskProfile:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository,
+                 repo_events: CampaignEventRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+        self.repo_events = repo_events
+
+    def execute(self, organization_id: UUID, campaign_id: UUID,
+                employee_id: UUID) -> CampaignEmployeeRiskProfileResponse:
+        org = self.repo_org.get_by_id(organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {organization_id} not found")
+        camp = self.repo_campaign.get_by_id(campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status in (CampaignStatus.Draft, CampaignStatus.Scheduled):
+            raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign "
+                                                   "that is in draft or scheduled")
+        emp = camp.get_employee(employee_id=employee_id)
+
+        events_emp = self.repo_events.get_by_campaign_and_employee_id(campaign_id, employee_id)
+
+        return CampaignEmployeeRiskProfileResponse(employee_id=emp.employee_id,
+                                                   campaign_id=camp.id,
+                                                   risk_score=emp.risk_score,
+                                                   sent_at=emp.sent_at,
+                                                   opened_at=emp.opened_at,
+                                                   click_count=len(emp.clicked_at),
+                                                   credential_submission_count=emp.count_submitted_credentials_at,
+                                                   is_sent=emp.sent_at is not None,
+                                                   is_opened=True if emp.opened_at is not None else False,
+                                                   is_clicked=bool(emp.clicked_at),
+                                                   credentials_submitted=emp.count_submitted_credentials_at > 0,
+                                                   event_count=len(events_emp),
+                                                   last_event_at=events_emp[-1].occurred_at if events_emp else None)
+
+
+class CredentialSubmissionEmployeeService:
+    def __init__(self, repo_campaign: CampaignRepository,
+                 repo_org: OrganizationRepository,
+                 repo_event: CampaignEventRepository):
+        self.repo_campaign = repo_campaign
+        self.repo_org = repo_org
+        self.repo_event = repo_event
+
+    def execute(self, organization_id: UUID,
+                campaign_id: UUID,
+                employee_id: UUID,
+                credential_submission_at: datetime) -> CredentialSubmissionEmployeeResponse:
+        org = self.repo_org.get_by_id(organization_id)
+        if org is None:
+            raise OrganizationNotFoundError(f"Organization with id"
+                                            f" {organization_id} not found")
+        camp = self.repo_campaign.get_by_id(campaign_id)
+        if camp is None:
+            raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
+        if org.id != camp.organization_id:
+            raise CampaignNotInThisOrganizationError("The campaign does not belong to this organization")
+        if camp.status != CampaignStatus.Running:
+            raise CampaignIsNotRunningError(f"Campaign {camp.name} is not running")
+
+        emp = camp.employees.get(employee_id)
+
+        emp.mark_credentials_submitted(mark_credentials_submitted_at=credential_submission_at)
+
+        event = CampaignEmployeeEvent(event_id=uuid4(),
+                                      campaign_id=camp.id,
+                                      employee_id=emp.employee_id,
+                                      occurred_at=credential_submission_at,
+                                      event_type=EventType.CredentialsSubmitted)
+        if self.repo_event:
+            self.repo_event.save(event)
+
+        self.repo_campaign.save(camp)
+
+        return CredentialSubmissionEmployeeResponse(campaign_id=camp.id,
+                                                    employee_id=emp.employee_id,
+                                                    credential_submission_at=credential_submission_at)
