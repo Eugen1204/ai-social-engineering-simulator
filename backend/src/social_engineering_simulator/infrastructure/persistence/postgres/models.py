@@ -1,9 +1,8 @@
 from datetime import datetime
-from sqlalchemy import UUID, String, Enum as SAEnum, ForeignKey
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from uuid import UUID
 
-from social_engineering_simulator.domain.organizations.department.employee.value_object import Email
-from social_engineering_simulator.domain.organizations.value_object import IndustryType
+from sqlalchemy import UUID as SAUUID, String, Enum as SAEnum, ForeignKey, DateTime
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -13,29 +12,47 @@ class Base(DeclarativeBase):
 class OrganizationModel(Base):
     __tablename__ = "organizations"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100))
-    industry: Mapped[IndustryType] = mapped_column(SAEnum(IndustryType, name="industry_type"))
-    created_at: Mapped[datetime] = mapped_column()
+    id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    industry: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    departments: Mapped[list['DepartmentModel']] = relationship(back_populates="organization",
+                                                                cascade="all, delete-orphan",
+                                                                passive_deletes=True)
+    employees: Mapped[list["EmployeeModel"]] = relationship(back_populates="organization", cascade="all, delete-orphan",
+                                                            passive_deletes=True)
 
     def __repr__(self) -> str:
-        return f"Organization(id={self.id!r}, name={self.name!r}, idustry={self.industry!r})"
+        return f"Organization(id={self.id!r}, name={self.name!r}, industry={self.industry!r})"
 
 
 class DepartmentModel(Base):
     __tablename__ = "departments"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100))
-    created_at: Mapped[datetime] = mapped_column()
+    id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    employees: Mapped[list["EmployeeModel"]] = relationship(back_populates="department", cascade="all, delete-orphan",
+                                                            passive_deletes=True)
+    organization_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete='CASCADE'), nullable=False)
+    organization: Mapped['OrganizationModel'] = relationship(back_populates='departments')
+
+    def __repr__(self) -> str:
+        return f"Department(id={self.id!r}, name={self.name!r})"
 
 
 class EmployeeModel(Base):
     __tablename__ = "employees"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(100))
-    email: Mapped[Email] = mapped_column()
-    created_at: Mapped[datetime] = mapped_column()
-    department_id: Mapped = mapped_column(ForeignKey("departments.id"))
+    id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(254), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.id", ondelete='CASCADE'), nullable=False)
+
+    department: Mapped["DepartmentModel"] = relationship(back_populates="employees")
+    organization: Mapped["OrganizationModel"] = relationship(back_populates="employees")
+
+    def __repr__(self) -> str:
+        return f"Employee(id={self.id!r}, name={self.name!r}, email={self.email!r})"
 
