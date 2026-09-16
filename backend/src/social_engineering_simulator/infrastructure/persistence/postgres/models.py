@@ -19,8 +19,6 @@ class OrganizationModel(Base):
     departments: Mapped[list['DepartmentModel']] = relationship(back_populates="organization",
                                                                 cascade="all, delete-orphan",
                                                                 passive_deletes=True)
-    employees: Mapped[list["EmployeeModel"]] = relationship(back_populates="organization", cascade="all, delete-orphan",
-                                                            passive_deletes=True)
 
     def __repr__(self) -> str:
         return f"Organization(id={self.id!r}, name={self.name!r}, industry={self.industry!r})"
@@ -51,7 +49,6 @@ class EmployeeModel(Base):
     department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.id", ondelete='CASCADE'), nullable=False)
 
     department: Mapped["DepartmentModel"] = relationship(back_populates="employees")
-    organization: Mapped["OrganizationModel"] = relationship(back_populates="employees")
 
     def __repr__(self) -> str:
         return f"Employee(id={self.id!r}, name={self.name!r}, email={self.email!r})"

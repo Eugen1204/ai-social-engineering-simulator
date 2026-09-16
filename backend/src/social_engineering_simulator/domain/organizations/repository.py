@@ -17,7 +17,7 @@ class OrganizationRepository(Protocol):
     def exists(self, organization_id: UUID) -> bool:
         ...
 
-    def get_all_organization(self) -> tuple[Organization, ...]:
+    def get_all_organizations(self) -> tuple[Organization, ...]:
         ...
 
 
