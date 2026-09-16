@@ -75,6 +75,9 @@ class Organization:
 
         return employee
 
+    def add_existing_employee(self, emp: Employee) -> None:
+        self._employees[emp.id] = emp
+
     def remove_employee(self, employee_id: UUID):
         employee = self._employees.get(employee_id)
         if not employee:

@@ -21,6 +21,6 @@ class OrganizationRepoInMemory(OrganizationRepository):
     def exists(self, organization_id: UUID) -> bool:
         return self.get_by_id(organization_id) is not None
 
-    def get_all_organization(self) -> tuple[Organization, ...]:
+    def get_all_organizations(self) -> tuple[Organization, ...]:
         return tuple(self._organizations.values())
 
