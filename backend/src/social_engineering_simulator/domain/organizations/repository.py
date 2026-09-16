@@ -21,3 +21,19 @@ class OrganizationRepository(Protocol):
         ...
 
 
+class AsyncOrganizationRepository(Protocol):
+    async def save(self, organization: Organization) -> None:
+        ...
+
+    async def get_by_id(self, organization_id: UUID) -> Organization | None:
+        ...
+
+    async def delete(self, organization_id: UUID) -> None:
+        ...
+
+    async def exists(self, organization_id: UUID) -> bool:
+        ...
+
+    async def get_all_organizations(self) -> tuple[Organization, ...]:
+        ...
+
