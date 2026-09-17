@@ -54,7 +54,10 @@ src/social_engineering_simulator/infrastructure/persistence/in_memory/campaign_e
 src/social_engineering_simulator/infrastructure/persistence/in_memory/campaign_repository.py
 src/social_engineering_simulator/infrastructure/persistence/in_memory/organization_repository.py
 src/social_engineering_simulator/infrastructure/persistence/in_memory/template_repository.py
+src/social_engineering_simulator/infrastructure/persistence/postgres/database.py
+src/social_engineering_simulator/infrastructure/persistence/postgres/mappers.py
 src/social_engineering_simulator/infrastructure/persistence/postgres/models.py
+src/social_engineering_simulator/infrastructure/persistence/postgres/organization_repository.py
 src/social_engineering_simulator/presentation/__init__.py
 src/social_engineering_simulator/presentation/app.py
 src/social_engineering_simulator/presentation/main.py
