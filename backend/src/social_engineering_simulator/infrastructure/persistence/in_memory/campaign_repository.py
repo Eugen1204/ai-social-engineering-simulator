@@ -11,20 +11,20 @@ from social_engineering_simulator.domain.organizations.campaign.value_object imp
 class CampaignRepoInMemory(CampaignRepository):
     _campaigns: dict[UUID, Campaign] = field(default_factory=dict)
 
-    def save(self, campaign: Campaign) -> None:
+    async def save(self, campaign: Campaign) -> None:
         self._campaigns[campaign.id] = campaign
 
-    def get_by_id(self, campaign_id: UUID) -> Campaign | None:
+    async def get_by_id(self, campaign_id: UUID) -> Campaign | None:
         return self._campaigns.get(campaign_id)
 
-    def delete(self, campaign_id: UUID) -> None:
+    async def delete(self, campaign_id: UUID) -> None:
         if campaign_id in self._campaigns:
             del self._campaigns[campaign_id]
 
-    def exists(self, campaign_id: UUID) -> bool:
+    async def exists(self, campaign_id: UUID) -> bool:
         return self._campaigns.get(campaign_id) is not None
 
-    def get_campaigns_ready_to_start(self, datetime_now: datetime) -> list[Campaign]:
+    async def get_campaigns_ready_to_start(self, datetime_now: datetime) -> list[Campaign]:
         ready_campaign = []
         for campaign in self._campaigns.values():
             if (campaign.status == CampaignStatus.Scheduled

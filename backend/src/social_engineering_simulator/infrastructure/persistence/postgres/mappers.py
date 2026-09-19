@@ -32,6 +32,7 @@ class OrganizationMapper:
                                     department_id=emp.department_id,
                                     created_at=emp.created_at.astimezone(UTC),
                                     id=emp.id)
+                department.add_employee_id(employee.id)
                 org.add_existing_employee(employee)
 
         return org

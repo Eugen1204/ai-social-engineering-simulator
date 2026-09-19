@@ -46,7 +46,7 @@ class EmployeeModel(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(254), nullable=False, unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.id", ondelete='CASCADE'), nullable=False)
+    department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.id", ondelete='RESTRICT'), nullable=False)
 
     department: Mapped["DepartmentModel"] = relationship(back_populates="employees")
 

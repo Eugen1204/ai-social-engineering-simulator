@@ -8,14 +8,14 @@ from sqlalchemy.orm import selectinload
 from social_engineering_simulator.domain.organizations.department.employee.entity import Employee
 from social_engineering_simulator.domain.organizations.department.entity import Department
 from social_engineering_simulator.domain.organizations.entity import Organization
-from social_engineering_simulator.domain.organizations.repository import AsyncOrganizationRepository
+from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
 from social_engineering_simulator.infrastructure.persistence.postgres.mappers import OrganizationMapper,\
     EmployeeMapper, DepartmentMapper
 from social_engineering_simulator.infrastructure.persistence.postgres.models import OrganizationModel, EmployeeModel, \
     DepartmentModel
 
 
-class PostgresOrganizationRepository(AsyncOrganizationRepository):
+class PostgresOrganizationRepository(OrganizationRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 

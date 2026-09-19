@@ -5,8 +5,8 @@ from social_engineering_simulator.domain.email_template.entity import Template
 
 
 class TemplateRepository(Protocol):
-    def save(self, template: Template) -> None:
+    async def save(self, template: Template) -> None:
         ...
 
-    def get_by_id(self, template_id: UUID) -> Template | None:
+    async def get_by_id(self, template_id: UUID) -> Template | None:
         ...

@@ -11,6 +11,8 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/.pytest_cache/v" />
       <excludeFolder url="file://$MODULE_DIR$/backend/.ruff_cache" />
       <excludeFolder url="file://$MODULE_DIR$/backend/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/.pytest_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/.pytest_cache" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.10 (ai-social-engineering-simulator)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

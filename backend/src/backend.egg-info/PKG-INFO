@@ -4,6 +4,8 @@ Version: 0.1.0
 Summary: Add your description here
 Requires-Python: >=3.13
 Description-Content-Type: text/markdown
+Requires-Dist: alembic>=1.20.0
+Requires-Dist: asyncpg>=0.31.0
 Requires-Dist: fastapi[standard]>=0.139.0
 Requires-Dist: sqlalchemy>=2.0.52
 Requires-Dist: transitions>=0.9.3

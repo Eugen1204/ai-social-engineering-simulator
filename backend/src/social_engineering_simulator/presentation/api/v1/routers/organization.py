@@ -26,7 +26,7 @@ async def create_organization(dto: CreateOrganizationHttpRequest,
         -> OrganizationHttpResponse:
     application_dto = CreateOrganizationRequest(name=dto.name, industry=dto.industry, departments=dto.departments)
 
-    result = service.execute(application_dto)
+    result = await service.execute(application_dto)
 
     return OrganizationHttpResponse(id=result.id,
                                     name=result.name,
@@ -38,7 +38,7 @@ async def create_organization(dto: CreateOrganizationHttpRequest,
 @router.get("/{organization_id}", response_model=OrganizationHttpResponse, status_code=200)
 async def get_organization(organization_id: UUID, service: GetOrganizationService = Depends(get_organization_service)) \
         -> OrganizationHttpResponse:
-    result = service.execute(organization_id)
+    result = await service.execute(organization_id)
 
     return OrganizationHttpResponse(id=result.id,
                                     name=result.name,
@@ -51,7 +51,7 @@ async def add_employee_in_org(organization_id: UUID, data: AddEmployeeRequest,
                               service: AddEmployeeInOrganization = Depends(add_emp_in_org)) \
         -> AddEmployeeRequestResponse:
     request = EmployeeRequest(name=data.name, email=data.email, dep_name=data.dep_name, org_id=organization_id)
-    result = service.execute(request)
+    result = await service.execute(request)
 
     return AddEmployeeRequestResponse(id=result.id, name=result.name, email=result.email, org_id=result.org_id)
 
@@ -59,7 +59,7 @@ async def add_employee_in_org(organization_id: UUID, data: AddEmployeeRequest,
 @router.get("/{organization_id}/employees/{employee_id}", response_model=GetEmployeeRequestResponse, status_code=200)
 async def get_employee_in_organization(organization_id: UUID, employee_id: UUID,
                                        service: GetEmployeeInOrganization = Depends(get_emp_in_org)):
-    result = service.execute(employee_id=employee_id, org_id=organization_id)
+    result = await service.execute(employee_id=employee_id, org_id=organization_id)
     return GetEmployeeRequestResponse(id=result.id, name=result.name, email=result.email, org_id=result.org_id)
 
 
@@ -69,7 +69,7 @@ async def template_preview(organization_id: UUID, template_id: UUID, variables: 
                            service: PreviewTemplateService = Depends(preview_template)) -> TemplateVariablesResponse:
     request = PreviewTemplateRequest(organization_id=organization_id, template_id=template_id,
                                      variables=variables.variables)
-    result = service.execute(request)
+    result = await service.execute(request)
 
     return TemplateVariablesResponse(subject=result.subject, content=result.content)
 
@@ -82,7 +82,7 @@ async def add_template(organization_id: UUID, request: AddTemplateRequest,
                                              subject=request.subject,
                                              content=request.content)
 
-    result = service.execute(template_request)
+    result = await service.execute(template_request)
 
     return AddTemplateResponse(id=result.id, name=result.name, subject=result.subject,
                                content=result.content, version=result.version, created_at=result.created_at,
@@ -93,7 +93,7 @@ async def add_template(organization_id: UUID, request: AddTemplateRequest,
 async def get_template(organization_id: UUID, template_id: UUID,
                        service: GetTemplateService = Depends(get_template_service)) -> TemplateResponse:
     request = GetTemplateRequest(id_template=template_id, id_organization=organization_id)
-    result = service.execute(request)
+    result = await service.execute(request)
 
     return TemplateResponse(id=result.id,
                             organization_id=result.organization_id,
@@ -112,7 +112,7 @@ async def update_template(organization_id: UUID, template_id: UUID, update_data:
                                     template_id=template_id,
                                     content=update_data.content,
                                     subject=update_data.subject)
-    result = service.execute(request)
+    result = await service.execute(request)
 
     return UpdateTemplateHttpResponse(organization_id=result.organization_id,
                                       template_id=result.template_id,
