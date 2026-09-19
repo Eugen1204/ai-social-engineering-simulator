@@ -18,7 +18,8 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_
     CampaignEventRepositoryInMemory
 
 
-def test_get_campaign_employee_profile_ap(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_get_campaign_employee_profile_ap(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -28,15 +29,15 @@ def test_get_campaign_employee_profile_ap(employee_in_campaign, application_orga
                                                               repo_events=repo_event)
 
     with pytest.raises(CampaignResultsNotAvailableError):
-        get_risk_profile_service.execute(organization_id=org.id,
-                                         campaign_id=camp.id,
-                                         employee_id=list(camp.employees.values())[0])
+        await get_risk_profile_service.execute(organization_id=org.id,
+                                               campaign_id=camp.id,
+                                               employee_id=list(camp.employees.values())[0])
 
     camp.start()
 
-    result = get_risk_profile_service.execute(organization_id=org.id,
-                                              campaign_id=camp.id,
-                                              employee_id=list(camp.employees.values())[0].employee_id)
+    result = await get_risk_profile_service.execute(organization_id=org.id,
+                                                    campaign_id=camp.id,
+                                                    employee_id=list(camp.employees.values())[0].employee_id)
 
     assert result.event_count == 0
     assert result.is_sent is False
@@ -44,14 +45,14 @@ def test_get_campaign_employee_profile_ap(employee_in_campaign, application_orga
 
     service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
-                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result_sent = await service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                             now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     emp_1 = camp.get_employee(result_sent.employees[0].employee_id)
 
-    result = get_risk_profile_service.execute(organization_id=org.id,
-                                              campaign_id=camp.id,
-                                              employee_id=emp_1.employee_id)
+    result = await get_risk_profile_service.execute(organization_id=org.id,
+                                                    campaign_id=camp.id,
+                                                    employee_id=emp_1.employee_id)
 
     assert result.risk_score == 0.1
     assert result.is_sent is True
@@ -68,9 +69,9 @@ def test_get_campaign_employee_profile_ap(employee_in_campaign, application_orga
                                            employee_id=emp_1.employee_id,
                                            click_at=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
-    service_click.execute(request)
-    service_click.execute(request)
-    service_click.execute(request)
+    await service_click.execute(request)
+    await service_click.execute(request)
+    await service_click.execute(request)
 
     service_opened = OpenCampaignEmployeeService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
@@ -78,11 +79,11 @@ def test_get_campaign_employee_profile_ap(employee_in_campaign, application_orga
                                           employee_id=emp_1.employee_id,
                                           open_at=datetime(2027, 1, 1, 10, 15, tzinfo=UTC))
 
-    service_opened.execute(request=request)
+    await service_opened.execute(request=request)
 
-    result = get_risk_profile_service.execute(organization_id=org.id,
-                                              campaign_id=camp.id,
-                                              employee_id=emp_1.employee_id)
+    result = await get_risk_profile_service.execute(organization_id=org.id,
+                                                    campaign_id=camp.id,
+                                                    employee_id=emp_1.employee_id)
     assert result.is_opened is True
     assert result.click_count == 3
     assert result.event_count == 5
@@ -91,34 +92,34 @@ def test_get_campaign_employee_profile_ap(employee_in_campaign, application_orga
     service = CredentialSubmissionEmployeeService(repo_campaign=repo_camp,
                                                   repo_org=repo_org,
                                                   repo_event=repo_event)
-    service.execute(organization_id=org.id,
-                    campaign_id=camp.id,
-                    employee_id=emp_1.employee_id,
-                    credential_submission_at=datetime(2027, 1, 1, 10, 15, tzinfo=UTC))
+    await service.execute(organization_id=org.id,
+                          campaign_id=camp.id,
+                          employee_id=emp_1.employee_id,
+                          credential_submission_at=datetime(2027, 1, 1, 10, 15, tzinfo=UTC))
 
-    service.execute(organization_id=org.id,
-                    campaign_id=camp.id,
-                    employee_id=emp_1.employee_id,
-                    credential_submission_at=datetime(2027, 1, 1, 10, 15, tzinfo=UTC))
+    await service.execute(organization_id=org.id,
+                          campaign_id=camp.id,
+                          employee_id=emp_1.employee_id,
+                          credential_submission_at=datetime(2027, 1, 1, 10, 15, tzinfo=UTC))
 
-    result = get_risk_profile_service.execute(organization_id=org.id,
-                                              campaign_id=camp.id,
-                                              employee_id=emp_1.employee_id)
+    result = await get_risk_profile_service.execute(organization_id=org.id,
+                                                    campaign_id=camp.id,
+                                                    employee_id=emp_1.employee_id)
 
     assert result.credentials_submitted is True
     assert result.credential_submission_count == 2
 
     with pytest.raises(OrganizationNotFoundError):
-        get_risk_profile_service.execute(organization_id=uuid4(),
-                                         campaign_id=camp.id,
-                                         employee_id=emp_1.employee_id)
+        await get_risk_profile_service.execute(organization_id=uuid4(),
+                                               campaign_id=camp.id,
+                                               employee_id=emp_1.employee_id)
 
     with pytest.raises(CampaignNotFoundError):
-        get_risk_profile_service.execute(organization_id=org.id,
-                                         campaign_id=uuid4(),
-                                         employee_id=emp_1.employee_id)
+        await get_risk_profile_service.execute(organization_id=org.id,
+                                               campaign_id=uuid4(),
+                                               employee_id=emp_1.employee_id)
 
     with pytest.raises(EmployeeNotFoundInCampaign):
-        get_risk_profile_service.execute(organization_id=org.id,
-                                         campaign_id=camp.id,
-                                         employee_id=uuid4())
+        await get_risk_profile_service.execute(organization_id=org.id,
+                                               campaign_id=camp.id,
+                                               employee_id=uuid4())

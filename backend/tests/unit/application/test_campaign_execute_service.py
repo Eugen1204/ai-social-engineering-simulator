@@ -4,24 +4,24 @@ import pytest
 
 from social_engineering_simulator.application.dto.create_organization import ExecutionStatus
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService
-from social_engineering_simulator.application.services.exceptions_create_campaign import  \
+from social_engineering_simulator.application.services.exceptions_create_campaign import \
     CampaignIsNotRunningError
 from social_engineering_simulator.domain.organizations.campaign.exceptions import CampaignValidationError
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
     CampaignEventRepositoryInMemory
 
 
-def test_running_campaign(employee_in_campaign, application_organization, make_draft_campaigns):
+@pytest.mark.asyncio
+async def test_running_campaign(employee_in_campaign, application_organization, make_draft_campaigns):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
-
 
     camp.start()
 
     service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10))
+    result = await service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10))
 
     assert result.sent_count == 3
 
@@ -33,7 +33,8 @@ def test_running_campaign(employee_in_campaign, application_organization, make_d
         empty_camp.start()
 
 
-def test_execute_campaign_with_3_skipped(employee_in_campaign, application_organization, make_draft_campaigns):
+@pytest.mark.asyncio
+async def test_execute_campaign_with_3_skipped(employee_in_campaign, application_organization, make_draft_campaigns):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -42,15 +43,16 @@ def test_execute_campaign_with_3_skipped(employee_in_campaign, application_organ
 
     service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10))
+    await service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10))
 
-    result_with_3_skipped_count = service.execute(campaign_id=camp.id, organization_id=org.id,
-                                                  now=datetime(2027, 1, 1, 11, 10))
+    result_with_3_skipped_count = await service.execute(campaign_id=camp.id, organization_id=org.id,
+                                                        now=datetime(2027, 1, 1, 11, 10))
 
     assert result_with_3_skipped_count.skipped_count == 3
 
 
-def test_execute_campaign_partial_send(employee_in_campaign, application_organization, make_draft_campaigns):
+@pytest.mark.asyncio
+async def test_execute_campaign_partial_send(employee_in_campaign, application_organization, make_draft_campaigns):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -62,8 +64,8 @@ def test_execute_campaign_partial_send(employee_in_campaign, application_organiz
     # I hardcoded one participant while accessing a private field, what can I do, I’m just learning
     camp.employees[list(camp.employees.keys())[0]]._sent_at = datetime(2026, 1, 1, 10, 10)
 
-    result_with_1_skipped_count = service.execute(campaign_id=camp.id, organization_id=org.id,
-                                                  now=datetime(2027, 1, 1, 10, 10))
+    result_with_1_skipped_count = await service.execute(campaign_id=camp.id, organization_id=org.id,
+                                                        now=datetime(2027, 1, 1, 10, 10))
 
     assert result_with_1_skipped_count.skipped_count == 1
     assert result_with_1_skipped_count.sent_count == 2
@@ -88,5 +90,5 @@ def test_execute_campaign_partial_send(employee_in_campaign, application_organiz
     camp.finish()
 
     with pytest.raises(CampaignIsNotRunningError):
-        service.execute(campaign_id=camp.id, organization_id=org.id,
+        await service.execute(campaign_id=camp.id, organization_id=org.id,
                         now=datetime(2027, 1, 1, 10, 10))

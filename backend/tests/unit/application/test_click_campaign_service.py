@@ -12,7 +12,8 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_
     CampaignEventRepositoryInMemory
 
 
-def test_click_campaign(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_click_campaign(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -21,7 +22,7 @@ def test_click_campaign(employee_in_campaign, application_organization):
 
     service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result = await service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     assert result.sent_count == 3
 
@@ -36,7 +37,7 @@ def test_click_campaign(employee_in_campaign, application_organization):
                                            employee_id=employees_with_sent_template[0].employee_id,
                                            click_at=click_at)
 
-    result_click = service.execute(request=request)
+    result_click = await service.execute(request=request)
 
     assert result_click.clicked_at == click_at
 
@@ -48,13 +49,14 @@ def test_click_campaign(employee_in_campaign, application_organization):
                                              employee_id=employees_with_sent_template[0].employee_id,
                                              click_at=datetime(2027, 1, 1, 12, 10, tzinfo=UTC))
 
-    service.execute(request=request_2)
+    await service.execute(request=request_2)
 
     assert camp.employees[employees_with_sent_template[0].employee_id].clicked_at[1] \
            == datetime(2027, 1, 1, 12, 10, tzinfo=UTC)
 
 
-def test_click_with_not_running_campaign(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_click_with_not_running_campaign(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -62,7 +64,7 @@ def test_click_with_not_running_campaign(employee_in_campaign, application_organ
     camp.start()
     service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result = await service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     assert result.sent_count == 3
 
@@ -80,10 +82,11 @@ def test_click_with_not_running_campaign(employee_in_campaign, application_organ
                                            click_at=click_at)
 
     with pytest.raises(CampaignIsNotRunningError):
-        service.execute(request)
+        await service.execute(request)
 
 
-def test_click_with_wrong_org(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_click_with_wrong_org(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -91,7 +94,7 @@ def test_click_with_wrong_org(employee_in_campaign, application_organization):
     camp.start()
     service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result = await service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     assert result.sent_count == 3
 
@@ -107,4 +110,4 @@ def test_click_with_wrong_org(employee_in_campaign, application_organization):
                                            click_at=click_at)
 
     with pytest.raises(OrganizationNotFoundError):
-        service.execute(request)
+        await service.execute(request)

@@ -28,7 +28,7 @@ async def create_campaign(dto: CampaignCreateRequest, service=Depends(get_create
     application_dto = CreateCampaignRequest(name=dto.name, organization_id=dto.organization_id,
                                             template_id=dto.template_id, landing_page_id=dto.landing_page_id)
 
-    result = service.execute(application_dto)
+    result = await service.execute(application_dto)
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
@@ -39,7 +39,7 @@ async def create_campaign(dto: CampaignCreateRequest, service=Depends(get_create
 @router.post("/{campaign_id}/start", response_model=CampaignHttpResponse, status_code=200)
 async def start_campaign(campaign_id: UUID, service=Depends(start_campaign_service)) \
         -> CampaignHttpResponse:
-    result = service.execute(campaign_id)
+    result = await service.execute(campaign_id)
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
@@ -50,7 +50,7 @@ async def start_campaign(campaign_id: UUID, service=Depends(start_campaign_servi
 @router.post("/{campaign_id}/finish", response_model=CampaignHttpResponse, status_code=200)
 async def finish_campaign(campaign_id: UUID, service: FinishCampaignService = Depends(finish_campaign_service)) \
         -> CampaignHttpResponse:
-    result = service.execute(campaign_id)
+    result = await service.execute(campaign_id)
 
     return CampaignHttpResponse(id=result.id, name=result.name, status=result.status,
                                 template_version=result.template_version)
@@ -59,7 +59,7 @@ async def finish_campaign(campaign_id: UUID, service: FinishCampaignService = De
 @router.post("/{campaign_id}/cancel", response_model=CampaignHttpResponse, status_code=200)
 async def cancel_campaign(campaign_id: UUID, service: CancelCampaignService = Depends(cancel_campaign_service)) \
         -> CampaignHttpResponse:
-    result = service.execute(campaign_id)
+    result = await service.execute(campaign_id)
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
@@ -72,7 +72,7 @@ async def schedule_campaign(campaign_id: UUID, data: ScheduleCampaignHttpRequest
                             service: ScheduleCampaignService = Depends(schedule_campaign_service)) \
         -> CampaignHttpResponse:
     request = ScheduleCampaignRequest(campaign_id=campaign_id, start_time=data.start_time)
-    result = service.execute(request)
+    result = await service.execute(request)
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
@@ -84,7 +84,7 @@ async def schedule_campaign(campaign_id: UUID, data: ScheduleCampaignHttpRequest
 async def add_employee(campaign_id: UUID, employee_id: UUID,
                        service: AddCampaignEmployeeService = Depends(add_employee_campaign)) -> EmployeeCampaignRequest:
     request = AddCampaignEmployeeRequest(employee_id=employee_id, campaign_id=campaign_id)
-    result = service.execute(request)
+    result = await service.execute(request)
 
     return EmployeeCampaignRequest(id=result.id, name=result.name, email=result.email,
                                    department_id=result.department_id)
@@ -94,13 +94,13 @@ async def add_employee(campaign_id: UUID, employee_id: UUID,
 async def remove_employee(campaign_id: UUID, employee_id: UUID,
                           service: RemoveCampaignEmployeeService = Depends(remove_employee_campaign)) -> None:
     request = RemoveCampaignEmployeeRequest(employee_id=employee_id, campaign_id=campaign_id)
-    service.execute(request)
+    await service.execute(request)
 
 
 @router.get("/{campaign_id}", status_code=200, response_model=CampaignHttpResponse)
 async def get_campaign(campaign_id: UUID,
                        service: GetCampaignService = Depends(get_campaign_service)) -> CampaignHttpResponse:
-    result = service.execute(campaign_id=campaign_id)
+    result = await service.execute(campaign_id=campaign_id)
 
     return CampaignHttpResponse(id=result.id,
                                 name=result.name,
@@ -113,7 +113,7 @@ async def get_employee_timeline(campaign_id: UUID, employee_id: UUID, org_id: UU
                                 service: GetCampaignEmployeeTimeline =
                                 Depends(get_campaign_employee_timeline_service)) \
         -> list[GetEmployeeTimelineHttpResponse]:
-    result = service.execute(org_id=org_id,
+    result = await service.execute(org_id=org_id,
                              campaign_id=campaign_id,
                              employee_id=employee_id)
 
@@ -132,7 +132,7 @@ async def get_risk_ranging_in_campaign(campaign_id: UUID,
                                        organization_id: UUID,
                                        service: GetCampaignRiskRanking = Depends(get_campaign_risk_ranging)) \
         -> list[CampaignEmployeeRiskHttpResponse]:
-    result = service.execute(organization_id=organization_id,
+    result = await service.execute(organization_id=organization_id,
                              campaign_id=campaign_id)
 
     lst_campaign_emp_risk = []
@@ -151,7 +151,7 @@ async def get_risk_ranging_in_campaign(campaign_id: UUID,
 async def get_campaign_dashboard(campaign_id: UUID, organization_id: UUID,
                                  service: GetCampaignAnalyticService = Depends(get_campaign_analytic)) \
         -> CampaignAnalyticHttpResponse:
-    result = service.execute(campaign_id=campaign_id, organization_id=organization_id)
+    result = await service.execute(campaign_id=campaign_id, organization_id=organization_id)
 
     return CampaignAnalyticHttpResponse(campaign_id=result.campaign_id,
                                         total_employees=result.total_employees,
@@ -172,7 +172,7 @@ async def get_campaign_employee_risk(campaign_id: UUID, employee_id: UUID,
                                      service: GetCampaignEmployeeRiskProfile =
                                      Depends(get_campaign_employee_risk_profile)) \
         -> CampaignEmployeeRiskProfileHttpResponse:
-    result = service.execute(organization_id=organization_id,
+    result = await service.execute(organization_id=organization_id,
                              campaign_id=campaign_id,
                              employee_id=employee_id)
     return CampaignEmployeeRiskProfileHttpResponse(employee_id=result.employee_id,

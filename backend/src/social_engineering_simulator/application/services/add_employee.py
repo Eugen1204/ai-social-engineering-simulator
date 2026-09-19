@@ -13,11 +13,11 @@ class AddCampaignEmployeeService:
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
 
-    def execute(self, request: AddCampaignEmployeeRequest):
-        campaign = self.repo_campaign.get_by_id(request.campaign_id)
+    async def execute(self, request: AddCampaignEmployeeRequest):
+        campaign = await self.repo_campaign.get_by_id(request.campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
-        organization = self.repo_org.get_by_id(campaign.organization_id)
+        organization = await self.repo_org.get_by_id(campaign.organization_id)
         if organization is None:
             raise OrganizationNotFoundError(f"Organization with {campaign.organization_id} not found")
         employee = organization.get_employee(request.employee_id)
@@ -25,7 +25,7 @@ class AddCampaignEmployeeService:
             raise EmployeeNotFoundError(f"Employee with {request.employee_id} not found")
 
         campaign.assign_employee(employee.id)
-        self.repo_campaign.save(campaign)
+        await self.repo_campaign.save(campaign)
 
         return CampaignEmployeeResponse(name=employee.name.value, id=employee.id, email=employee.email.value,
                                         department_id=employee.department_id)
@@ -35,12 +35,12 @@ class RemoveCampaignEmployeeService:
     def __init__(self, repo_campaign: CampaignRepository):
         self.repo_campaign = repo_campaign
 
-    def execute(self, request: RemoveCampaignEmployeeRequest):
-        campaign = self.repo_campaign.get_by_id(request.campaign_id)
+    async def execute(self, request: RemoveCampaignEmployeeRequest):
+        campaign = await self.repo_campaign.get_by_id(request.campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
 
         campaign.remove_employee(request.employee_id)
-        self.repo_campaign.save(campaign)
+        await self.repo_campaign.save(campaign)
 
 

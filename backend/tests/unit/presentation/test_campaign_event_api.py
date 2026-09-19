@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+import pytest
+
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService
 
 
@@ -22,9 +24,10 @@ def test_get_emp_timeline(client_with_repos, created_organization, created_campa
     assert response.json() == []
 
 
-def test_get_campaign_employees_risk(client_with_repos, created_organization, created_campaign_with_emp,
-                                     created_campaign,
-                                     created_employee):
+@pytest.mark.asyncio
+async def test_get_campaign_employees_risk(client_with_repos, created_organization, created_campaign_with_emp,
+                                           created_campaign,
+                                           created_employee):
     client, _, repo_org, repo_events, repo_campaign = client_with_repos
 
     campaign_id = created_campaign['id']
@@ -41,7 +44,7 @@ def test_get_campaign_employees_risk(client_with_repos, created_organization, cr
         repo_event=repo_events
     )
 
-    execute_service.execute(
+    await execute_service.execute(
         campaign_id=UUID(campaign_id),
         organization_id=UUID(organization_id),
         now=datetime(2027, 1, 1, 10, 0, tzinfo=timezone.utc)
@@ -51,7 +54,3 @@ def test_get_campaign_employees_risk(client_with_repos, created_organization, cr
                           f"{created_organization['id']}")
 
     assert response.status_code == 200
-
-
-
-

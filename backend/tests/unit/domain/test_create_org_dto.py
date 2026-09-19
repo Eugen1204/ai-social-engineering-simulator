@@ -13,16 +13,18 @@ def dto() -> CreateOrganizationRequest:
                                      departments=["HR", "IT"])
 
 
-def test_create_org_services(dto):
+@pytest.mark.asyncio
+async def test_create_org_services(dto):
     repo = OrganizationRepoInMemory()
     service = CreateOrganizationService(repo=repo)
-    result = service.execute(request=dto)
+    result = await service.execute(request=dto)
 
     assert result.name == "Test Org"
     assert result.industry == "IT Company"
 
 
-def test_create_service_with_duplicate():
+@pytest.mark.asyncio
+async def test_create_service_with_duplicate():
     repo = OrganizationRepoInMemory()
     service = CreateOrganizationService(repo=repo)
     dto = CreateOrganizationRequest(name="Test",
@@ -30,4 +32,4 @@ def test_create_service_with_duplicate():
                                     departments=["HR", "IT", "HR"])
 
     with pytest.raises(DuplicateDepartmentsError):
-        service.execute(request=dto)
+        await service.execute(request=dto)

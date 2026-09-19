@@ -2,6 +2,7 @@ from datetime import datetime, timezone, timedelta
 from uuid import uuid4, UUID
 
 import pytest
+import pytest_asyncio
 
 from social_engineering_simulator.domain.email_template.entity import Template
 from social_engineering_simulator.domain.email_template.value_object import SubjectText, ContentText
@@ -19,8 +20,8 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.template_
     TemplateRepositoryInMemory
 
 
-@pytest.fixture
-def application_organization():
+@pytest_asyncio.fixture
+async def application_organization():
     repo_org = OrganizationRepoInMemory()
     org = Organization(name=OrganizationName("Test org"),
                        industry=IndustryType.IT_COMPANY)
@@ -29,25 +30,25 @@ def application_organization():
     org.add_employee(name=EmployeeName("Kevin Smt"), email=Email("test2@blabla.com"), dep_name=DepartmentName("HR"))
     org.add_employee(name=EmployeeName("John Smt"), email=Email("test3@blabla.com"), dep_name=DepartmentName("HR"))
 
-    repo_org.save(org)
+    await repo_org.save(org)
 
     return org, repo_org
 
 
-@pytest.fixture
-def application_template(application_organization):
+@pytest_asyncio.fixture
+async def application_template(application_organization):
     org, _ = application_organization
     repo_template = TemplateRepositoryInMemory()
     template = Template(organization_id=org.id,
                         name="Fishing",
                         subject=SubjectText("Fishing"),
                         content=ContentText("Content_test"))
-    repo_template.save(template)
+    await repo_template.save(template)
     return template, repo_template
 
 
-@pytest.fixture
-def application_campaign(application_organization, application_template):
+@pytest_asyncio.fixture
+async def application_campaign(application_organization, application_template):
     repo_campaign = CampaignRepoInMemory()
     org, _ = application_organization
     template, _ = application_template
@@ -65,13 +66,13 @@ def application_campaign(application_organization, application_template):
 
     camp.schedule(time)
 
-    repo_campaign.save(camp)
+    await repo_campaign.save(camp)
 
     return camp, repo_campaign
 
 
-@pytest.fixture
-def make_draft_campaigns(application_organization, application_template, **kwargs):
+@pytest_asyncio.fixture
+async def make_draft_campaigns(application_organization, application_template, **kwargs):
     org, _ = application_organization
     template, _ = application_template
 
@@ -105,15 +106,15 @@ def make_draft_campaigns(application_organization, application_template, **kwarg
     return _make_draft_campaigns
 
 
-@pytest.fixture
-def employee_in_campaign(application_campaign, application_organization):
+@pytest_asyncio.fixture
+async def employee_in_campaign(application_campaign, application_organization):
     camp, repo_camp = application_campaign
     org, repo_org = application_organization
 
     for emp_id in org.employees:
         camp.assign_employee(emp_id)
 
-    repo_camp.save(camp)
+    await repo_camp.save(camp)
 
     return camp, repo_camp
 

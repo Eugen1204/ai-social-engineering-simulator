@@ -36,12 +36,12 @@ class CreateCampaignService:
         self.repo_org = repo_org
         self.repo_template = repo_template
 
-    def execute(self, request: CreateCampaignRequest) -> CampaignResponse:
+    async def execute(self, request: CreateCampaignRequest) -> CampaignResponse:
         name = CampaignName(request.name)
         org_id = request.organization_id
-        if not self.repo_org.get_by_id(organization_id=org_id):
+        if not await self.repo_org.get_by_id(organization_id=org_id):
             raise OrganizationNotFoundError(f"Organization with id {org_id} not found")
-        template = self.repo_template.get_by_id(template_id=request.template_id)
+        template = await self.repo_template.get_by_id(template_id=request.template_id)
         if template is None:
             raise TemplateNotFoundError(f'Template with {request.template_id} not found')
         if template.organization_id != request.organization_id:
@@ -55,7 +55,7 @@ class CreateCampaignService:
                         _template_subject=template.subject.value,
                         _template_content=template.content.value)
 
-        self.repo_campaign.save(camp)
+        await self.repo_campaign.save(camp)
 
         return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value,
                                 template_version=camp.template_version)
@@ -65,8 +65,8 @@ class GetCampaignService:
     def __init__(self, repo: CampaignRepository):
         self.repo = repo
 
-    def execute(self, campaign_id: UUID) -> CampaignResponse:
-        campaign = self.repo.get_by_id(campaign_id)
+    async def execute(self, campaign_id: UUID) -> CampaignResponse:
+        campaign = await self.repo.get_by_id(campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
 
@@ -80,14 +80,14 @@ class StartCampaignService:
     def __init__(self, repo: CampaignRepository):
         self.repo = repo
 
-    def execute(self, campaign_id: UUID) -> CampaignResponse:
-        campaign = self.repo.get_by_id(campaign_id)
+    async def execute(self, campaign_id: UUID) -> CampaignResponse:
+        campaign = await self.repo.get_by_id(campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
 
         campaign.start()
 
-        self.repo.save(campaign)
+        await self.repo.save(campaign)
 
         return CampaignResponse(id=campaign.id,
                                 name=campaign.name.value,
@@ -99,14 +99,14 @@ class FinishCampaignService:
     def __init__(self, repo: CampaignRepository):
         self.repo = repo
 
-    def execute(self, campaign_id: UUID) -> CampaignResponse:
-        campaign = self.repo.get_by_id(campaign_id)
+    async def execute(self, campaign_id: UUID) -> CampaignResponse:
+        campaign = await self.repo.get_by_id(campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(
                 f"Campaign with {campaign_id} not found"
             )
         campaign.finish()
-        self.repo.save(campaign)
+        await self.repo.save(campaign)
 
         return CampaignResponse(id=campaign.id, name=campaign.name.value, status=campaign.status.value,
                                 template_version=campaign.template_version)
@@ -116,14 +116,14 @@ class CancelCampaignService:
     def __init__(self, repo: CampaignRepository):
         self.repo = repo
 
-    def execute(self, campaign_id: UUID) -> CampaignResponse:
-        campaign = self.repo.get_by_id(campaign_id)
+    async def execute(self, campaign_id: UUID) -> CampaignResponse:
+        campaign = await self.repo.get_by_id(campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(
                 f"Campaign with {campaign_id} not found"
             )
         campaign.cancel()
-        self.repo.save(campaign)
+        await self.repo.save(campaign)
 
         return CampaignResponse(id=campaign.id, name=campaign.name.value, status=campaign.status.value,
                                 template_version=campaign.template_version)
@@ -133,14 +133,14 @@ class ScheduleCampaignService:
     def __init__(self, repo_campaign: CampaignRepository):
         self.repo_campaign = repo_campaign
 
-    def execute(self, request: ScheduleCampaignRequest) -> CampaignResponse:
+    async def execute(self, request: ScheduleCampaignRequest) -> CampaignResponse:
         campaign_id = request.campaign_id
-        camp = self.repo_campaign.get_by_id(campaign_id=campaign_id)
+        camp = await self.repo_campaign.get_by_id(campaign_id=campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with id {campaign_id} not found")
 
         camp.schedule(start_time=request.start_time)
-        self.repo_campaign.save(camp)
+        await self.repo_campaign.save(camp)
 
         return CampaignResponse(id=camp.id, name=camp.name.value, status=camp.status.value,
                                 template_version=camp.template_version)
@@ -153,12 +153,12 @@ class ExecuteCampaignService:
         self.repo_org = repo_org
         self.repo_event = repo_event
 
-    def execute(self, campaign_id: UUID, organization_id: UUID,
-                now: datetime | None = None) -> ExecuteCampaignResponse:
-        campaign = self.repo_campaign.get_by_id(campaign_id)
+    async def execute(self, campaign_id: UUID, organization_id: UUID,
+                      now: datetime | None = None) -> ExecuteCampaignResponse:
+        campaign = await self.repo_campaign.get_by_id(campaign_id)
         if campaign is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
-        org = self.repo_org.get_by_id(organization_id)
+        org = await self.repo_org.get_by_id(organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id {organization_id} not found")
         if org.id != campaign.organization_id:
@@ -186,9 +186,9 @@ class ExecuteCampaignService:
                                           occurred_at=now,
                                           event_type=EventType.EmailSent)
             if self.repo_event:
-                self.repo_event.save(event)
+                await self.repo_event.save(event)
             sent_count += 1
-        self.repo_campaign.save(campaign)
+        await self.repo_campaign.save(campaign)
 
         return ExecuteCampaignResponse(campaign_id=campaign.id,
                                        total_employees=len(campaign.employees),
@@ -206,12 +206,12 @@ class OpenCampaignEmployeeService:
         self.repo_org = repo_org
         self.repo_event = repo_event
 
-    def execute(self, request: OpenTemplateCampaignRequest) -> OpenTemplateCampaignResponse:
-        org = self.repo_org.get_by_id(request.organization_id)
+    async def execute(self, request: OpenTemplateCampaignRequest) -> OpenTemplateCampaignResponse:
+        org = await self.repo_org.get_by_id(request.organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {request.organization_id} not found")
-        camp = self.repo_campaign.get_by_id(request.campaign_id)
+        camp = await self.repo_campaign.get_by_id(request.campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
         if org.id != camp.organization_id:
@@ -230,9 +230,9 @@ class OpenCampaignEmployeeService:
                                       occurred_at=open_at,
                                       event_type=EventType.EmailOpened)
         if self.repo_event:
-            self.repo_event.save(event)
+            await self.repo_event.save(event)
 
-        self.repo_campaign.save(camp)
+        await self.repo_campaign.save(camp)
 
         return OpenTemplateCampaignResponse(campaign_id=camp.id,
                                             employee_id=emp.employee_id,
@@ -247,12 +247,12 @@ class ClickCampaignEmployeeService:
         self.repo_org = repo_org
         self.repo_event = repo_event
 
-    def execute(self, request: ClickCampaignEmployeeRequest) -> ClickCampaignEmployeeResponse:
-        org = self.repo_org.get_by_id(request.organization_id)
+    async def execute(self, request: ClickCampaignEmployeeRequest) -> ClickCampaignEmployeeResponse:
+        org = await self.repo_org.get_by_id(request.organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {request.organization_id} not found")
-        camp = self.repo_campaign.get_by_id(request.campaign_id)
+        camp = await self.repo_campaign.get_by_id(request.campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
         if org.id != camp.organization_id:
@@ -274,9 +274,9 @@ class ClickCampaignEmployeeService:
                                       occurred_at=click_at,
                                       event_type=EventType.LinkClicked)
         if self.repo_event:
-            self.repo_event.save(event)
+            await self.repo_event.save(event)
 
-        self.repo_campaign.save(camp)
+        await self.repo_campaign.save(camp)
 
         return ClickCampaignEmployeeResponse(campaign_id=camp.id,
                                              employee_id=emp.employee_id,
@@ -289,12 +289,12 @@ class GetCampaignEmployeeResultService:
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
 
-    def execute(self, request: EmployeeResultRequest) -> EmployeeResultResponse:
-        org = self.repo_org.get_by_id(request.organization_id)
+    async def execute(self, request: EmployeeResultRequest) -> EmployeeResultResponse:
+        org = await self.repo_org.get_by_id(request.organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {request.organization_id} not found")
-        camp = self.repo_campaign.get_by_id(request.campaign_id)
+        camp = await self.repo_campaign.get_by_id(request.campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with {request.campaign_id} not found")
         if org.id != camp.organization_id:
@@ -322,9 +322,9 @@ class GetCampaignAnalyticService:
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
 
-    def execute(self, campaign_id: UUID, organization_id: UUID) -> CampaignAnalyticResponse:
-        camp = self.repo_campaign.get_by_id(campaign_id)
-        org = self.repo_org.get_by_id(organization_id)
+    async def execute(self, campaign_id: UUID, organization_id: UUID) -> CampaignAnalyticResponse:
+        camp = await self.repo_campaign.get_by_id(campaign_id)
+        org = await self.repo_org.get_by_id(organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {organization_id} not found")
@@ -388,12 +388,13 @@ class GetCampaignEmployeeTimeline:
         self.repo_org = repo_org
         self.repo_event = repo_event
 
-    def execute(self, org_id: UUID, campaign_id: UUID, employee_id: UUID) -> list[GetCampaignEmployeeTimelineResponse]:
-        org = self.repo_org.get_by_id(org_id)
+    async def execute(self, org_id: UUID, campaign_id: UUID, employee_id: UUID) -> list[
+        GetCampaignEmployeeTimelineResponse]:
+        org = await self.repo_org.get_by_id(org_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {org_id} not found")
-        camp = self.repo_campaign.get_by_id(campaign_id)
+        camp = await self.repo_campaign.get_by_id(campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
         emp = camp.get_employee(employee_id)
@@ -405,8 +406,8 @@ class GetCampaignEmployeeTimeline:
             raise CampaignResultsNotAvailableError("It is impossible to get results from a campaign "
                                                    "that is in draft or scheduled")
 
-        events = self.repo_event.get_by_campaign_and_employee_id(campaign_id=camp.id,
-                                                                 employee_id=emp.employee_id)
+        events = await self.repo_event.get_by_campaign_and_employee_id(campaign_id=camp.id,
+                                                                       employee_id=emp.employee_id)
         lst = []
         for e in events:
             lst.append(GetCampaignEmployeeTimelineResponse(event_id=e.event_id,
@@ -421,12 +422,12 @@ class GetCampaignRiskRanking:
         self.repo_campaign = repo_campaign
         self.repo_org = repo_org
 
-    def execute(self, organization_id: UUID, campaign_id: UUID) -> list[CampaignEmployeeRiskResponse]:
-        org = self.repo_org.get_by_id(organization_id)
+    async def execute(self, organization_id: UUID, campaign_id: UUID) -> list[CampaignEmployeeRiskResponse]:
+        org = await self.repo_org.get_by_id(organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {organization_id} not found")
-        camp = self.repo_campaign.get_by_id(campaign_id)
+        camp = await self.repo_campaign.get_by_id(campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
         if org.id != camp.organization_id:
@@ -458,13 +459,13 @@ class GetCampaignEmployeeRiskProfile:
         self.repo_org = repo_org
         self.repo_events = repo_events
 
-    def execute(self, organization_id: UUID, campaign_id: UUID,
-                employee_id: UUID) -> CampaignEmployeeRiskProfileResponse:
-        org = self.repo_org.get_by_id(organization_id)
+    async def execute(self, organization_id: UUID, campaign_id: UUID,
+                      employee_id: UUID) -> CampaignEmployeeRiskProfileResponse:
+        org = await self.repo_org.get_by_id(organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {organization_id} not found")
-        camp = self.repo_campaign.get_by_id(campaign_id)
+        camp = await self.repo_campaign.get_by_id(campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
         if org.id != camp.organization_id:
@@ -474,7 +475,7 @@ class GetCampaignEmployeeRiskProfile:
                                                    "that is in draft or scheduled")
         emp = camp.get_employee(employee_id=employee_id)
 
-        events_emp = self.repo_events.get_by_campaign_and_employee_id(campaign_id, employee_id)
+        events_emp = await self.repo_events.get_by_campaign_and_employee_id(campaign_id, employee_id)
 
         return CampaignEmployeeRiskProfileResponse(employee_id=emp.employee_id,
                                                    campaign_id=camp.id,
@@ -499,15 +500,15 @@ class CredentialSubmissionEmployeeService:
         self.repo_org = repo_org
         self.repo_event = repo_event
 
-    def execute(self, organization_id: UUID,
-                campaign_id: UUID,
-                employee_id: UUID,
-                credential_submission_at: datetime) -> CredentialSubmissionEmployeeResponse:
-        org = self.repo_org.get_by_id(organization_id)
+    async def execute(self, organization_id: UUID,
+                      campaign_id: UUID,
+                      employee_id: UUID,
+                      credential_submission_at: datetime) -> CredentialSubmissionEmployeeResponse:
+        org = await self.repo_org.get_by_id(organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with id"
                                             f" {organization_id} not found")
-        camp = self.repo_campaign.get_by_id(campaign_id)
+        camp = await self.repo_campaign.get_by_id(campaign_id)
         if camp is None:
             raise CampaignNotFoundError(f"Campaign with {campaign_id} not found")
         if org.id != camp.organization_id:
@@ -525,9 +526,9 @@ class CredentialSubmissionEmployeeService:
                                       occurred_at=credential_submission_at,
                                       event_type=EventType.CredentialsSubmitted)
         if self.repo_event:
-            self.repo_event.save(event)
+            await self.repo_event.save(event)
 
-        self.repo_campaign.save(camp)
+        await self.repo_campaign.save(camp)
 
         return CredentialSubmissionEmployeeResponse(campaign_id=camp.id,
                                                     employee_id=emp.employee_id,

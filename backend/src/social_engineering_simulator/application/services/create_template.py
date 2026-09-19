@@ -17,14 +17,14 @@ class CreateTemplateService:
         self.repo_template = repo_template
         self.repo_org = repo_org
 
-    def execute(self, request: CreateTemplateRequest) -> CreateTemplateRequestResponse:
+    async def execute(self, request: CreateTemplateRequest) -> CreateTemplateRequestResponse:
         org_id = request.organization_id
-        if not self.repo_org.get_by_id(organization_id=org_id):
+        if not await self.repo_org.get_by_id(organization_id=org_id):
             raise OrganizationNotFoundError(f"Organization with id {org_id} not found")
         temp = Template(organization_id=request.organization_id, name=request.name,
                         subject=SubjectText(request.subject), content=ContentText(request.content))
 
-        self.repo_template.save(temp)
+        await self.repo_template.save(temp)
 
         return CreateTemplateRequestResponse(id=temp.id,
                                              name=temp.name,
@@ -40,9 +40,9 @@ class GetTemplateService:
         self.repo_template = repo_template
         self.repo_org = repo_org
 
-    def execute(self, request: GetTemplateRequest):
-        temp = self.repo_template.get_by_id(request.id_template)
-        if self.repo_org.get_by_id(temp.organization_id) is None:
+    async def execute(self, request: GetTemplateRequest):
+        temp = await self.repo_template.get_by_id(request.id_template)
+        if await self.repo_org.get_by_id(temp.organization_id) is None:
             raise OrganizationNotFoundError("Organization not found")
         if temp is None:
             raise TemplateNotFoundError("Template not found")
@@ -64,10 +64,10 @@ class PreviewTemplateService:
         self.repo_org = repo_org
         self.engine = engine
 
-    def execute(self, request: PreviewTemplateRequest) -> TemplateVariablesResponse:
-        temp = self.repo_template.get_by_id(request.template_id)
+    async def execute(self, request: PreviewTemplateRequest) -> TemplateVariablesResponse:
+        temp = await self.repo_template.get_by_id(request.template_id)
 
-        if self.repo_org.get_by_id(temp.organization_id) is None:
+        if await self.repo_org.get_by_id(temp.organization_id) is None:
             raise OrganizationNotFoundError("Organization not found")
         if temp is None:
             raise TemplateNotFoundError("Template not found")
@@ -87,9 +87,9 @@ class UpdateTemplateService:
         self.repo_template = repo_template
         self.repo_org = repo_org
 
-    def execute(self, request: UpdateTemplateRequest) -> UpdateTemplateResponse:
-        template = self.repo_template.get_by_id(request.template_id)
-        if self.repo_org.get_by_id(template.organization_id) is None:
+    async def execute(self, request: UpdateTemplateRequest) -> UpdateTemplateResponse:
+        template = await self.repo_template.get_by_id(request.template_id)
+        if await self.repo_org.get_by_id(template.organization_id) is None:
             raise OrganizationNotFoundError("Organization not found")
         if template is None:
             raise TemplateNotFoundError("Template not found")

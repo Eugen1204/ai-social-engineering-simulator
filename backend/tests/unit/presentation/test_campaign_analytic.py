@@ -1,13 +1,17 @@
 from datetime import datetime, UTC
 from uuid import UUID
 
+import pytest
+
 from social_engineering_simulator.application.dto.create_campaign import ClickCampaignEmployeeRequest
 from social_engineering_simulator.application.services.create_campaign import ExecuteCampaignService, \
     ClickCampaignEmployeeService
 
 
-def test_get_campaign_analytic(client_with_repos, created_organization, created_campaign_with_emp, created_campaign,
-                               created_employee_factory):
+@pytest.mark.asyncio
+async def test_get_campaign_analytic(client_with_repos, created_organization, created_campaign_with_emp,
+                                     created_campaign,
+                                     created_employee_factory):
     client, _, repo_org, repo_events, repo_campaign = client_with_repos
 
     campaign_id = created_campaign['id']
@@ -21,8 +25,8 @@ def test_get_campaign_analytic(client_with_repos, created_organization, created_
 
     service = ExecuteCampaignService(repo_campaign=repo_campaign, repo_org=repo_org, repo_event=repo_events)
 
-    service.execute(campaign_id=UUID(campaign_id), organization_id=UUID(organization_id),
-                    now=datetime(2027, 10, 10, 10, 10, tzinfo=UTC))
+    await service.execute(campaign_id=UUID(campaign_id), organization_id=UUID(organization_id),
+                          now=datetime(2027, 10, 10, 10, 10, tzinfo=UTC))
 
     response = client.get(f"campaigns/{campaign_id}/dashboard?organization_id={organization_id}")
 
@@ -37,19 +41,19 @@ def test_get_campaign_analytic(client_with_repos, created_organization, created_
                                                  organization_id=UUID(organization_id),
                                                  employee_id=UUID(emp_1['id']),
                                                  click_at=datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
-    service_click.execute(request_click)
+    await service_click.execute(request_click)
 
     request_click = ClickCampaignEmployeeRequest(campaign_id=UUID(campaign_id),
                                                  organization_id=UUID(organization_id),
                                                  employee_id=UUID(emp_2['id']),
                                                  click_at=datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
-    service_click.execute(request_click)
+    await service_click.execute(request_click)
 
     request_click = ClickCampaignEmployeeRequest(campaign_id=UUID(campaign_id),
                                                  organization_id=UUID(organization_id),
                                                  employee_id=UUID(emp_3['id']),
                                                  click_at=datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
-    service_click.execute(request_click)
+    await service_click.execute(request_click)
 
     response = client.get(f"campaigns/{campaign_id}/dashboard?organization_id={organization_id}")
 

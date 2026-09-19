@@ -18,7 +18,8 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_
     CampaignEventRepositoryInMemory
 
 
-def test_risk_score_campaign(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_risk_score_campaign(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -27,7 +28,8 @@ def test_risk_score_campaign(employee_in_campaign, application_organization):
 
     service = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result = service.execute(campaign_id=camp.id, organization_id=org.id, now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result = await service.execute(campaign_id=camp.id, organization_id=org.id,
+                                   now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     assert result.sent_count == 3
 
@@ -42,7 +44,7 @@ def test_risk_score_campaign(employee_in_campaign, application_organization):
                                                  employee_id=employees_with_sent_template[0].employee_id,
                                                  click_at=click_at)
 
-    result_click = service_click.execute(request=request_click)
+    result_click = await service_click.execute(request=request_click)
 
     assert result_click.clicked_at == click_at
 
@@ -54,7 +56,7 @@ def test_risk_score_campaign(employee_in_campaign, application_organization):
                                              employee_id=employees_with_sent_template[0].employee_id,
                                              click_at=datetime(2027, 1, 1, 12, 10, tzinfo=UTC))
 
-    service_click.execute(request=request_2)
+    await service_click.execute(request=request_2)
 
     assert camp.employees[employees_with_sent_template[0].employee_id].clicked_at[1] \
            == datetime(2027, 1, 1, 12, 10, tzinfo=UTC)
@@ -67,7 +69,7 @@ def test_risk_score_campaign(employee_in_campaign, application_organization):
                                     campaign_id=camp.id,
                                     employee_id=emp.employee_id)
 
-    result = service.execute(request)
+    result = await service.execute(request)
 
     # 0.1 + 0.3 + 0.05 (sent_score + first_click_score + additional_clicks_score)
     assert result.risk_score == 0.45
@@ -79,23 +81,23 @@ def test_risk_score_campaign(employee_in_campaign, application_organization):
                                             employee_id=emp.employee_id,
                                             open_at=datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
 
-    result_2 = service_2.execute(request_2)
+    result_2 = await service_2.execute(request_2)
 
     assert result_2.opened_at == datetime(2026, 10, 10, 10, 10, tzinfo=UTC)
 
-    result = service.execute(request)
+    result = await service.execute(request)
 
     assert result.risk_score == pytest.approx(0.75)
 
-    service_click.execute(request=request_click)
+    await service_click.execute(request=request_click)
 
-    result = service.execute(request)
+    result = await service.execute(request)
 
     assert result.risk_score == pytest.approx(0.8)
 
-    service_click.execute(request=request_click)
+    await service_click.execute(request=request_click)
 
-    result = service.execute(request)
+    result = await service.execute(request)
 
     assert result.risk_score == pytest.approx(0.8)
 
@@ -104,24 +106,25 @@ def test_risk_score_campaign(employee_in_campaign, application_organization):
                                     employee_id=uuid4())
 
     with pytest.raises(EmployeeNotFoundInCampaign):
-        service.execute(request)
+        await service.execute(request)
 
     request = EmployeeResultRequest(organization_id=uuid4(),
                                     campaign_id=camp.id,
                                     employee_id=emp.employee_id)
 
     with pytest.raises(OrganizationNotFoundError):
-        service.execute(request)
+        await service.execute(request)
 
     request = EmployeeResultRequest(organization_id=org.id,
                                     campaign_id=uuid4(),
                                     employee_id=emp.employee_id)
 
     with pytest.raises(CampaignNotFoundError):
-        service.execute(request)
+        await service.execute(request)
 
 
-def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -130,8 +133,8 @@ def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_org
 
     service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
-                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result_sent = await service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                             now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     assert result_sent.sent_count == 3
 
@@ -143,7 +146,7 @@ def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_org
                                     campaign_id=camp.id,
                                     employee_id=emp.employee_id)
 
-    result_score = service_get_result.execute(request)
+    result_score = await service_get_result.execute(request)
 
     # template just sent
     assert result_score.risk_score == 0.1
@@ -155,9 +158,9 @@ def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_org
                                                employee_id=emp.employee_id,
                                                open_at=datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
 
-    service_open.execute(request_open)
+    await service_open.execute(request_open)
 
-    result_score = service_get_result.execute(request)
+    result_score = await service_get_result.execute(request)
 
     # the template was opened
     assert result_score.risk_score == 0.4
@@ -169,26 +172,27 @@ def test_all_cycle_get_employee_risk_score(employee_in_campaign, application_org
                                                  employee_id=emp.employee_id,
                                                  click_at=datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
 
-    service_click.execute(request=request_click)
+    await service_click.execute(request=request_click)
 
-    service_click.execute(request=request_click)
+    await service_click.execute(request=request_click)
 
-    result_score = service_get_result.execute(request)
+    result_score = await service_get_result.execute(request)
 
     # the template was opened and 2 clicks
     assert result_score.risk_score == 0.75
 
     emp.mark_credentials_submitted(datetime(2026, 10, 10, 10, 10, tzinfo=UTC))
 
-    service_click.execute(request=request_click)
+    await service_click.execute(request=request_click)
 
-    result_score = service_get_result.execute(request)
+    result_score = await service_get_result.execute(request)
 
     # the template was opened and 2 clicks and mark credentials submitted
     assert result_score.risk_score == 1.0
 
 
-def test_get_campaign_risk_score(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_get_campaign_risk_score(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -199,8 +203,8 @@ def test_get_campaign_risk_score(employee_in_campaign, application_organization)
 
     service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
-                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result_sent = await service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                             now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     emp_1 = camp.get_employee(result_sent.employees[0].employee_id)
 
@@ -221,8 +225,8 @@ def test_get_campaign_risk_score(employee_in_campaign, application_organization)
     service_get_cam_risk = GetCampaignRiskRanking(repo_campaign=repo_camp,
                                                   repo_org=repo_org)
 
-    response_get_risk = service_get_cam_risk.execute(organization_id=org.id,
-                                                     campaign_id=camp.id)
+    response_get_risk = await service_get_cam_risk.execute(organization_id=org.id,
+                                                           campaign_id=camp.id)
 
     assert len(response_get_risk) == 3
 
@@ -235,7 +239,8 @@ def test_get_campaign_risk_score(employee_in_campaign, application_organization)
     assert len(camp.employees) == 4
 
 
-def test_get_same_risk_employee(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_get_same_risk_employee(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -244,8 +249,8 @@ def test_get_same_risk_employee(employee_in_campaign, application_organization):
 
     service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
-                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result_sent = await service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                             now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     emp_1 = camp.get_employee(result_sent.employees[0].employee_id)
     emp_2 = camp.get_employee(result_sent.employees[1].employee_id)
@@ -260,20 +265,21 @@ def test_get_same_risk_employee(employee_in_campaign, application_organization):
     service_get_cam_risk = GetCampaignRiskRanking(repo_campaign=repo_camp,
                                                   repo_org=repo_org)
 
-    response_get_risk = service_get_cam_risk.execute(organization_id=org.id,
-                                                     campaign_id=camp.id)
+    response_get_risk = await service_get_cam_risk.execute(organization_id=org.id,
+                                                           campaign_id=camp.id)
 
     assert len(response_get_risk) == 3
 
-    response_get_risk = service_get_cam_risk.execute(organization_id=org.id,
-                                                     campaign_id=camp.id)
+    response_get_risk = await service_get_cam_risk.execute(organization_id=org.id,
+                                                           campaign_id=camp.id)
 
     assert response_get_risk[0].risk_score == 1.0
     assert response_get_risk[1].risk_score == 1.0
     assert response_get_risk[2].risk_score == 0.1
 
 
-def test_get_risk_score_raises(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_get_risk_score_raises(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -282,42 +288,43 @@ def test_get_risk_score_raises(employee_in_campaign, application_organization):
                                                   repo_org=repo_org)
 
     with pytest.raises(CampaignResultsNotAvailableError):
-        service_get_cam_risk.execute(organization_id=org.id,
-                                     campaign_id=camp.id)
+        await service_get_cam_risk.execute(organization_id=org.id,
+                                           campaign_id=camp.id)
 
     camp.start()
 
     service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    service_sent.execute(campaign_id=camp.id, organization_id=org.id,
-                         now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    await service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                               now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     with pytest.raises(CampaignNotFoundError):
-        service_get_cam_risk.execute(organization_id=org.id,
-                                     campaign_id=uuid4())
+        await service_get_cam_risk.execute(organization_id=org.id,
+                                           campaign_id=uuid4())
 
     with pytest.raises(OrganizationNotFoundError):
-        service_get_cam_risk.execute(organization_id=uuid4(),
-                                     campaign_id=camp.id)
+        await service_get_cam_risk.execute(organization_id=uuid4(),
+                                           campaign_id=camp.id)
 
 
-def test_with_2_campaign_get_risk_score(employee_in_campaign, application_organization, make_draft_campaigns):
+@pytest.mark.asyncio
+async def test_with_2_campaign_get_risk_score(employee_in_campaign, application_organization, make_draft_campaigns):
     org, repo_org = application_organization
     camp_1, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
     camp_2 = make_draft_campaigns(name="Camp_2", with_employee=True, organization_id=org.id)
-    repo_camp.save(camp_2)
+    await repo_camp.save(camp_2)
 
     camp_2.start()
     camp_1.start()
 
     service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result_sent_camp_1 = service_sent.execute(campaign_id=camp_1.id, organization_id=org.id,
-                                              now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result_sent_camp_1 = await service_sent.execute(campaign_id=camp_1.id, organization_id=org.id,
+                                                    now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
-    result_sent_camp_2 = service_sent.execute(campaign_id=camp_2.id, organization_id=org.id,
-                                              now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result_sent_camp_2 = await service_sent.execute(campaign_id=camp_2.id, organization_id=org.id,
+                                                    now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     emp_1 = camp_1.get_employee(result_sent_camp_1.employees[0].employee_id)
     emp_2 = camp_1.get_employee(result_sent_camp_1.employees[1].employee_id)
@@ -333,19 +340,20 @@ def test_with_2_campaign_get_risk_score(employee_in_campaign, application_organi
     service_get_cam_risk = GetCampaignRiskRanking(repo_campaign=repo_camp,
                                                   repo_org=repo_org)
 
-    camp_2_result = service_get_cam_risk.execute(organization_id=org.id,
-                                                 campaign_id=camp_2.id)
+    camp_2_result = await service_get_cam_risk.execute(organization_id=org.id,
+                                                       campaign_id=camp_2.id)
     assert len(camp_2_result) == 1
 
     assert sum([e.risk_score for e in camp_2_result]) == 0.1
 
-    camp_1_result = service_get_cam_risk.execute(organization_id=org.id,
-                                                 campaign_id=camp_1.id)
+    camp_1_result = await service_get_cam_risk.execute(organization_id=org.id,
+                                                       campaign_id=camp_1.id)
 
     assert sum([e.risk_score for e in camp_1_result]) == 3.0
 
 
-def test_get_campaign_analytic(employee_in_campaign, application_organization):
+@pytest.mark.asyncio
+async def test_get_campaign_analytic(employee_in_campaign, application_organization):
     org, repo_org = application_organization
     camp, repo_camp = employee_in_campaign
     repo_event = CampaignEventRepositoryInMemory()
@@ -354,8 +362,8 @@ def test_get_campaign_analytic(employee_in_campaign, application_organization):
 
     service_sent = ExecuteCampaignService(repo_campaign=repo_camp, repo_org=repo_org, repo_event=repo_event)
 
-    result_sent = service_sent.execute(campaign_id=camp.id, organization_id=org.id,
-                                       now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
+    result_sent = await service_sent.execute(campaign_id=camp.id, organization_id=org.id,
+                                             now=datetime(2027, 1, 1, 10, 10, tzinfo=UTC))
 
     emp_1 = camp.get_employee(result_sent.employees[0].employee_id)
     emp_2 = camp.get_employee(result_sent.employees[1].employee_id)
@@ -364,8 +372,8 @@ def test_get_campaign_analytic(employee_in_campaign, application_organization):
     service = GetCampaignAnalyticService(repo_campaign=repo_camp,
                                          repo_org=repo_org)
 
-    result = service.execute(campaign_id=camp.id,
-                             organization_id=org.id)
+    result = await service.execute(campaign_id=camp.id,
+                                   organization_id=org.id)
 
     assert result.sent_count == 3
     assert result.campaign_id == camp.id
@@ -380,8 +388,8 @@ def test_get_campaign_analytic(employee_in_campaign, application_organization):
     emp_3.mark_clicked()
     emp_3.mark_credentials_submitted()
 
-    result_2 = service.execute(campaign_id=camp.id,
-                               organization_id=org.id)
+    result_2 = await service.execute(campaign_id=camp.id,
+                                     organization_id=org.id)
 
     expected = (emp_1.risk_score + emp_2.risk_score + emp_3.risk_score) / 3
 

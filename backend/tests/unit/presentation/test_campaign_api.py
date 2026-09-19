@@ -60,7 +60,8 @@ def template_with_organization(client):
     return response.json(), emp.json()['id']
 
 
-def test_create_campaign(client, template_with_organization):
+@pytest.mark.asyncio
+async def test_create_campaign(client, template_with_organization):
     template_with_org, emp_id = template_with_organization
 
     print(template_with_org)
@@ -75,7 +76,7 @@ def test_create_campaign(client, template_with_organization):
     assert response.status_code == 201
     data = response.json()
     repo = app.dependency_overrides[get_repository_campaign]()
-    assert repo.exists(UUID(data["id"]))
+    assert await repo.exists(UUID(data["id"]))
     client.post(f"/campaigns/{data['id']}/employees/{emp_id}")
 
     response_start = client.post(f"/campaigns/{data['id']}/start")

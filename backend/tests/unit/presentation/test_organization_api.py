@@ -89,8 +89,6 @@ def test_get_organization(client):
 
 
 def test_get_wrong_organization(client):
-
     response_get = client.get(f"/organizations/{uuid4()}")
 
     assert response_get.status_code == 404
-

@@ -16,7 +16,7 @@ class CreateOrganizationService:
     def __init__(self, repo: OrganizationRepository):
         self.repo = repo
 
-    def execute(self, request: CreateOrganizationRequest) -> OrganizationResponse:
+    async def execute(self, request: CreateOrganizationRequest) -> OrganizationResponse:
         name = OrganizationName(request.name)
         industry = IndustryType.from_str(request.industry)
 
@@ -29,7 +29,7 @@ class CreateOrganizationService:
             department = Department(name=DepartmentName(department_name))
             org.add_department(department=department)
 
-        self.repo.save(org)
+        await self.repo.save(org)
 
         return OrganizationResponse(id=org.id,
                                     name=org.name.value,
@@ -41,8 +41,8 @@ class GetOrganizationService:
     def __init__(self, repo: OrganizationRepository):
         self.repo = repo
 
-    def execute(self, organization_id: UUID) -> OrganizationResponse:
-        org = self.repo.get_by_id(organization_id)
+    async def execute(self, organization_id: UUID) -> OrganizationResponse:
+        org = await self.repo.get_by_id(organization_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with {organization_id} not found")
 
@@ -56,15 +56,15 @@ class AddEmployeeInOrganization:
     def __init__(self, repo: OrganizationRepository):
         self.repo = repo
 
-    def execute(self, request: EmployeeRequest) -> EmployeeResponse:
-        org = self.repo.get_by_id(request.org_id)
+    async def execute(self, request: EmployeeRequest) -> EmployeeResponse:
+        org = await self.repo.get_by_id(request.org_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with {request.org_id} not found")
         emp = org.add_employee(name=EmployeeName(request.name),
                                email=Email(request.email),
                                dep_name=DepartmentName(request.dep_name))
 
-        self.repo.save(org)
+        await self.repo.save(org)
 
         return EmployeeResponse(id=emp.id, name=emp.name.value, email=emp.email.value, org_id=org.id)
 
@@ -73,8 +73,8 @@ class GetEmployeeInOrganization:
     def __init__(self, repo: OrganizationRepository):
         self.repo = repo
 
-    def execute(self, employee_id: UUID, org_id: UUID) -> EmployeeResponse:
-        org = self.repo.get_by_id(org_id)
+    async def execute(self, employee_id: UUID, org_id: UUID) -> EmployeeResponse:
+        org = await self.repo.get_by_id(org_id)
         if org is None:
             raise OrganizationNotFoundError(f"Organization with {org_id} not found")
 

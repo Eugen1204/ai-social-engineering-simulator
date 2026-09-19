@@ -5,23 +5,6 @@ from social_engineering_simulator.domain.organizations.entity import Organizatio
 
 
 class OrganizationRepository(Protocol):
-    def save(self, organization: Organization) -> None:
-        ...
-
-    def get_by_id(self, organization_id: UUID) -> Organization | None:
-        ...
-
-    def delete(self, organization_id: UUID) -> None:
-        ...
-
-    def exists(self, organization_id: UUID) -> bool:
-        ...
-
-    def get_all_organizations(self) -> tuple[Organization, ...]:
-        ...
-
-
-class AsyncOrganizationRepository(Protocol):
     async def save(self, organization: Organization) -> None:
         ...
 
