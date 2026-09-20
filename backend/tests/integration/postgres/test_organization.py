@@ -167,11 +167,11 @@ async def test_delete_dep_with_emp(session: AsyncSession):
     assert len(loaded_org.get_departments()) == 2
     assert emp_hr.department_id == dep_hr.id
     assert emp_it.department_id == dep_it.id
-    print(loaded_org.department_find_by_name(DepartmentName('HR')))
     assert loaded_org.department_find_by_name(DepartmentName('HR')).get_employee_ids() is not None
 
     with pytest.raises(DepartmentDelError):
         org.remove_department(dep_hr.id)
+
     org.remove_employee(emp_hr.id)
     org.remove_department(dep_hr.id)
 

@@ -9,7 +9,7 @@ from social_engineering_simulator.domain.organizations.department.employee.entit
 from social_engineering_simulator.domain.organizations.department.entity import Department
 from social_engineering_simulator.domain.organizations.entity import Organization
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
-from social_engineering_simulator.infrastructure.persistence.postgres.mappers import OrganizationMapper,\
+from social_engineering_simulator.infrastructure.persistence.postgres.mappers import OrganizationMapper, \
     EmployeeMapper, DepartmentMapper
 from social_engineering_simulator.infrastructure.persistence.postgres.models import OrganizationModel, EmployeeModel, \
     DepartmentModel
@@ -20,20 +20,22 @@ class PostgresOrganizationRepository(OrganizationRepository):
         self.session = session
 
     async def save(self, organization: Organization) -> None:
-        result = await self.session.execute(
-            select(OrganizationModel).where(OrganizationModel.id == organization.id)
-        )
-        org_model = result.scalar_one_or_none()
+        with self.session.no_autoflush:
+            result = await self.session.execute(
+                select(OrganizationModel).where(OrganizationModel.id == organization.id)
+            )
+            org_model = result.scalar_one_or_none()
 
-        if org_model is None:
-            org_model = OrganizationMapper.to_model(organization)
-            self.session.add(org_model)
-        else:
-            org_model = OrganizationMapper.to_model(organization=organization, existing_org_model=org_model)
+            if org_model is None:
+                org_model = OrganizationMapper.to_model(organization)
+                self.session.add(org_model)
+            else:
+                org_model = OrganizationMapper.to_model(organization=organization, existing_org_model=org_model)
+            await self._sync_employees(org_model, organization.get_employees())
 
-        await self._sync_departments(org_model, organization.get_departments())
+            await self._sync_departments(org_model, organization.get_departments())
 
-        await self._sync_employees(org_model, organization.get_employees())
+        await self.session.flush()
 
     async def _sync_departments(self, org_model: OrganizationModel,
                                 departments: tuple[Department]):
@@ -110,7 +112,7 @@ class PostgresOrganizationRepository(OrganizationRepository):
 
     async def get_all_organizations(self) -> tuple[Organization, ...]:
         stmt = (select(OrganizationModel).options(selectinload(OrganizationModel.departments)
-                .selectinload(DepartmentModel.employees)))
+                                                  .selectinload(DepartmentModel.employees)))
 
         result = await self.session.execute(stmt)
 

@@ -1,8 +1,15 @@
+from datetime import datetime, UTC
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
+from social_engineering_simulator.domain.organizations.entity import Organization
+from social_engineering_simulator.domain.organizations.value_object import IndustryType, OrganizationName
 from social_engineering_simulator.infrastructure.persistence.postgres.models import Base
+from social_engineering_simulator.infrastructure.persistence.postgres.organization_repository import \
+    PostgresOrganizationRepository
 
 TEST_DATABASE_URL = f'postgresql+asyncpg://postgres:postgres@localhost:5433/simulator_test'
 
@@ -22,3 +29,6 @@ async def session():
         await conn.run_sync(Base.metadata.drop_all)
 
     await engine.dispose()
+
+
+
