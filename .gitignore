@@ -1,13 +1,18 @@
-/.env
-.DS_Store
-
+# Python
 __pycache__/
 *.py[cod]
-*.pyo
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
+*.so
+*.egg-info/
 .venv/
 venv/
-env/
+
+# IDE
+.idea/
+.vscode/
+
+# Кэши
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/.env
+
+.env
