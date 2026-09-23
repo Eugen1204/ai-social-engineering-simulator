@@ -10,16 +10,17 @@ from social_engineering_simulator.domain.email_template.value_object import Subj
     RenderedTemplate, ContentText
 from social_engineering_simulator.domain.organizations.exceptions import OrganizationNotFoundError
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
+from social_engineering_simulator.domain.organizations.unit_of_work import UnitOfWork
 
 
 class CreateTemplateService:
-    def __init__(self, repo_template: TemplateRepository, repo_org: OrganizationRepository):
+    def __init__(self, repo_template: TemplateRepository, uow: UnitOfWork):
         self.repo_template = repo_template
-        self.repo_org = repo_org
+        self.uow = uow
 
     async def execute(self, request: CreateTemplateRequest) -> CreateTemplateRequestResponse:
         org_id = request.organization_id
-        if not await self.repo_org.get_by_id(organization_id=org_id):
+        if not await self.uow.organizations.get_by_id(organization_id=org_id):
             raise OrganizationNotFoundError(f"Organization with id {org_id} not found")
         temp = Template(organization_id=request.organization_id, name=request.name,
                         subject=SubjectText(request.subject), content=ContentText(request.content))
@@ -36,13 +37,13 @@ class CreateTemplateService:
 
 
 class GetTemplateService:
-    def __init__(self, repo_template: TemplateRepository, repo_org: OrganizationRepository):
+    def __init__(self, repo_template: TemplateRepository, uow: UnitOfWork):
         self.repo_template = repo_template
-        self.repo_org = repo_org
+        self.uow = uow
 
     async def execute(self, request: GetTemplateRequest):
         temp = await self.repo_template.get_by_id(request.id_template)
-        if await self.repo_org.get_by_id(temp.organization_id) is None:
+        if await self.uow.organizations.get_by_id(temp.organization_id) is None:
             raise OrganizationNotFoundError("Organization not found")
         if temp is None:
             raise TemplateNotFoundError("Template not found")
@@ -59,15 +60,15 @@ class GetTemplateService:
 
 
 class PreviewTemplateService:
-    def __init__(self, repo_template: TemplateRepository, repo_org: OrganizationRepository, engine: EngineTemplate):
+    def __init__(self, repo_template: TemplateRepository, uow: UnitOfWork, engine: EngineTemplate):
         self.repo_template = repo_template
-        self.repo_org = repo_org
+        self.uow = uow
         self.engine = engine
 
     async def execute(self, request: PreviewTemplateRequest) -> TemplateVariablesResponse:
         temp = await self.repo_template.get_by_id(request.template_id)
 
-        if await self.repo_org.get_by_id(temp.organization_id) is None:
+        if await self.uow.organizations.get_by_id(temp.organization_id) is None:
             raise OrganizationNotFoundError("Organization not found")
         if temp is None:
             raise TemplateNotFoundError("Template not found")
@@ -83,13 +84,13 @@ class PreviewTemplateService:
 
 
 class UpdateTemplateService:
-    def __init__(self, repo_template: TemplateRepository, repo_org: OrganizationRepository):
+    def __init__(self, repo_template: TemplateRepository, uow: UnitOfWork):
         self.repo_template = repo_template
-        self.repo_org = repo_org
+        self.uow = uow
 
     async def execute(self, request: UpdateTemplateRequest) -> UpdateTemplateResponse:
         template = await self.repo_template.get_by_id(request.template_id)
-        if await self.repo_org.get_by_id(template.organization_id) is None:
+        if await self.uow.organizations.get_by_id(template.organization_id) is None:
             raise OrganizationNotFoundError("Organization not found")
         if template is None:
             raise TemplateNotFoundError("Template not found")
