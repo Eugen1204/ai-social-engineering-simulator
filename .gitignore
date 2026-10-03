@@ -16,3 +16,9 @@ venv/
 .ruff_cache/.env
 
 .env
+
+# macOS
+.DS_Store
+
+# Python packaging
+*.egg-info/
