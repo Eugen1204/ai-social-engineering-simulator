@@ -13,3 +13,9 @@ venv/
 env/
 
 .idea/
+
+# macOS
+.DS_Store
+
+# Python packaging
+*.egg-info/
