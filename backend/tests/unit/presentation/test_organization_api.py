@@ -16,6 +16,7 @@ def client():
     """Фикстура для создания тестового клиента с InMemory-репозиторием."""
     repo = OrganizationRepoInMemory()
     app.dependency_overrides[get_organization_repository] = lambda: repo
+    app.dependency_overrides[get_organization_repository] = lambda: repo
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()

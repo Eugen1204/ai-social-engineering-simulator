@@ -1,12 +1,9 @@
-from typing import Callable
 from uuid import uuid4, UUID
 
 import pytest
 from starlette.testclient import TestClient
 
 from social_engineering_simulator.domain.email_template.services.template_engine import EngineTemplate
-from social_engineering_simulator.domain.organizations.department.employee.entity import Employee
-from social_engineering_simulator.domain.organizations.department.employee.value_object import EmployeeName
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
     CampaignEventRepositoryInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
@@ -14,8 +11,10 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.organizat
     OrganizationRepoInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.template_repository import \
     TemplateRepositoryInMemory
+from social_engineering_simulator.infrastructure.persistence.in_memory.unit_of_work import UnitOfWorkInMemory
 from social_engineering_simulator.presentation.api.v1.dependencies import get_repository_campaign, \
-    get_organization_repository, get_repository_template, get_engine_template, get_repository_events
+    get_organization_repository, get_repository_template, get_engine_template, get_repository_events, \
+    get_organization_repository_uow
 from social_engineering_simulator.presentation.main import app
 
 
@@ -25,8 +24,10 @@ def client_with_repos():
     repo_org = OrganizationRepoInMemory()
     repo_template = TemplateRepositoryInMemory()
     repo_events = CampaignEventRepositoryInMemory()
+    uow = UnitOfWorkInMemory()
     app.dependency_overrides[get_repository_campaign] = lambda: repo_campaign
     app.dependency_overrides[get_organization_repository] = lambda: repo_org
+    app.dependency_overrides[get_organization_repository_uow] = lambda: uow
     app.dependency_overrides[get_repository_template] = lambda: repo_template
     app.dependency_overrides[get_engine_template] = lambda: EngineTemplate()
     app.dependency_overrides[get_repository_events] = lambda: repo_events

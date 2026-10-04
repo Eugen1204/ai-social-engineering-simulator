@@ -16,6 +16,7 @@ from social_engineering_simulator.domain.email_template.services.template_engine
 from social_engineering_simulator.domain.organizations.campaign.campaign_event_repository import CampaignEventRepository
 from social_engineering_simulator.domain.organizations.campaign.repository import CampaignRepository
 from social_engineering_simulator.domain.organizations.repository import OrganizationRepository
+from social_engineering_simulator.domain.organizations.unit_of_work import UnitOfWork
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_event_repository import \
     CampaignEventRepositoryInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.campaign_repository import CampaignRepoInMemory
@@ -23,6 +24,7 @@ from social_engineering_simulator.infrastructure.persistence.in_memory.organizat
     OrganizationRepoInMemory
 from social_engineering_simulator.infrastructure.persistence.in_memory.template_repository import \
     TemplateRepositoryInMemory
+from social_engineering_simulator.infrastructure.persistence.in_memory.unit_of_work import UnitOfWorkInMemory
 
 
 @lru_cache()
@@ -30,10 +32,15 @@ def get_organization_repository() -> OrganizationRepository:
     return OrganizationRepoInMemory()
 
 
+@lru_cache()
+def get_organization_repository_uow() -> UnitOfWork:
+    return UnitOfWorkInMemory()
+
+
 def get_create_organization_service(
-        repo: OrganizationRepository = Depends(get_organization_repository)
+        uow: UnitOfWork = Depends(get_organization_repository_uow)
 ) -> CreateOrganizationService:
-    return CreateOrganizationService(repo=repo)
+    return CreateOrganizationService(uow=uow)
 
 
 def get_organization_service(
